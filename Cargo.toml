@@ -6,6 +6,7 @@ members = [
     "modules/announcement",
     "modules/auth",
     "modules/blockchain",
+    "modules/custom-support",
     "modules/mailer",
     "modules/shop",
     "modules/supply",
