@@ -1,7 +1,7 @@
 [workspace]
 resolver = "3"
 members = [
-    "modules/admin",
+    "modules/admin", "modules/auth",
     "modules/framework",
     "modules/ordering",
     "modules/payment",
@@ -31,6 +31,7 @@ thiserror = "2.0"
 anyhow = "1.0"
 
 # Framework
+framework = { path = "modules/framework" }
 kanau = { version = "0.3", features = [
     "message",
     "rkyv",
