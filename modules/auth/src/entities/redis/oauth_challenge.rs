@@ -112,8 +112,7 @@ impl OAuthChallenge {
         use kanau::message::MessageDe;
         use redis::AsyncCommands;
 
-        let redis_key: framework::redis::RedisKey = key.into();
-        let data: Option<Vec<u8>> = conn.get_del(redis_key).await?;
+        let data: Option<Vec<u8>> = conn.get_del(key).await?;
         if let Some(bytes) = data {
             let val = <Self as MessageDe>::from_bytes(&bytes)
                 .map_err(|e| framework::Error::DeserializeError(e.into()))?;

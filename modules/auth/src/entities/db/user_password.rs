@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-#[derive(Clone, Eq, PartialEq, sqlx::FromRow, zeroize::ZeroizeOnDrop, zeroize::Zeroize)]
+#[derive(Clone, Eq, PartialEq, sqlx::FromRow)]
 pub struct UserPassword {
     pub user_id: Uuid,
     pub password_hash: String,

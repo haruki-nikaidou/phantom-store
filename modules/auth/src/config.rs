@@ -115,8 +115,8 @@ impl JwtConfig {
             sub: user_id,
             sid: session_id.0,
             exp,
-            iss: self.issuer,
-            aud: self.audience,
+            iss: self.issuer.clone(),
+            aud: self.audience.clone(),
         };
         let token_str = encode(claims)?;
         Ok(AccessToken::new(token_str))
@@ -134,8 +134,8 @@ impl JwtConfig {
             sub: user_id,
             sid: session_id.0,
             exp,
-            iss: self.issuer,
-            aud: self.audience,
+            iss: self.issuer.clone(),
+            aud: self.audience.clone(),
         };
         let token_str = encode(claims)?;
         Ok(RefreshToken::new(token_str))
@@ -218,4 +218,8 @@ fn default_mfa_token_ttl() -> time::Duration {
 
 fn default_sudo_token_ttl() -> time::Duration {
     time::Duration::minutes(5)
+}
+
+impl admin::utils::config_provider::ConfigJson for AuthConfig {
+    const KEY: &'static str = "auth_config";
 }

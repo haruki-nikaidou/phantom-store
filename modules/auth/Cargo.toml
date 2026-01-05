@@ -6,6 +6,7 @@ publish = false
 
 [dependencies]
 framework = { workspace = true }
+admin = { path = "../admin" }
 anyhow = { workspace = true }
 kanau = { workspace = true }
 sqlx = { workspace = true }
