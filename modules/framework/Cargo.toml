@@ -2,5 +2,19 @@
 name = "framework"
 version = "0.1.0"
 edition = "2024"
+publish = false
 
 [dependencies]
+tokio-stream = {workspace = true}
+tokio = {workspace = true}
+kanau = {workspace = true}
+sqlx = {workspace = true}
+uuid = {workspace = true}
+amqprs = {workspace = true}
+redis = {workspace = true}
+thiserror = {workspace = true}
+anyhow = {workspace = true}
+tracing = {workspace = true}
+tonic = {workspace = true}
+time = {workspace = true}
+crossbeam-queue = "0.3.12"
