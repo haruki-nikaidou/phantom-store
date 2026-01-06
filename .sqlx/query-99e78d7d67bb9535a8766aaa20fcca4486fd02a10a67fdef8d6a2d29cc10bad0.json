@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE \"auth\".\"email_otp\"\n            SET has_been_used = TRUE, used_at = NOW()\n            WHERE id = $1\n            RETURNING \n            id, user_id, email, otp_code, created_at, \n            expires_at, has_been_used, used_at, \n            usage as \"usage: EmailOtpUsage\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "email",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "otp_code",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 5,
+        "name": "expires_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 6,
+        "name": "has_been_used",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "used_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 8,
+        "name": "usage: EmailOtpUsage",
+        "type_info": {
+          "Custom": {
+            "name": "auth.email_otp_usage",
+            "kind": {
+              "Enum": [
+                "login",
+                "password_reset",
+                "change_email_address",
+                "sudo_mode"
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "99e78d7d67bb9535a8766aaa20fcca4486fd02a10a67fdef8d6a2d29cc10bad0"
+}

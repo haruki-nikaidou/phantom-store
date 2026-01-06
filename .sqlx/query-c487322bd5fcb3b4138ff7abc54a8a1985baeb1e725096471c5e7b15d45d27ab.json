@@ -1,0 +1,98 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO \"auth\".\"email_otp\" (user_id, email, otp_code, expires_at, usage)\n            VALUES ($1, $2, $3, NOW() + $4, $5)\n            RETURNING \n            id, user_id, email, otp_code, created_at, \n            expires_at, has_been_used, used_at, \n            usage as \"usage: EmailOtpUsage\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "email",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "otp_code",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 5,
+        "name": "expires_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 6,
+        "name": "has_been_used",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "used_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 8,
+        "name": "usage: EmailOtpUsage",
+        "type_info": {
+          "Custom": {
+            "name": "auth.email_otp_usage",
+            "kind": {
+              "Enum": [
+                "login",
+                "password_reset",
+                "change_email_address",
+                "sudo_mode"
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Varchar",
+        "Interval",
+        {
+          "Custom": {
+            "name": "auth.email_otp_usage",
+            "kind": {
+              "Enum": [
+                "login",
+                "password_reset",
+                "change_email_address",
+                "sudo_mode"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "c487322bd5fcb3b4138ff7abc54a8a1985baeb1e725096471c5e7b15d45d27ab"
+}
