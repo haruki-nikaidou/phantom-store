@@ -88,3 +88,32 @@ impl Processor<UpdateUserName, Result<UserAccount, sqlx::Error>> for DatabasePro
         .await
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct RegisterPasswordlessUserAccount {
+    pub email: String,
+    pub name: Option<String>,
+}
+
+impl Processor<RegisterPasswordlessUserAccount, Result<UserAccount, sqlx::Error>>
+    for DatabaseProcessor
+{
+    #[instrument(skip_all, name = "SQL:RegisterPasswordlessUserAccount", err)]
+    async fn process(
+        &self,
+        input: RegisterPasswordlessUserAccount,
+    ) -> Result<UserAccount, sqlx::Error> {
+        sqlx::query_as!(
+            UserAccount,
+            r#"
+            INSERT INTO "auth"."user_account" (email, name)
+            VALUES ($1, $2)
+            RETURNING id, name, email, created_at, updated_at
+            "#,
+            &input.email,
+            input.name
+        )
+        .fetch_one(self.db())
+        .await
+    }
+}

@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT id, user_id, provider_name as \"provider_name: OAuthProviderName\", provider_user_id, registered_at, token_updated_at\n            FROM \"auth\".\"oauth_account\"\n            WHERE provider_name = $1 AND provider_user_id = $2\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "provider_name: OAuthProviderName",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "provider_user_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "registered_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 5,
+        "name": "token_updated_at",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "7c556b85af6503c468fed2fadf9223306bbb26f02bee15228122797d9f0d496f"
+}
