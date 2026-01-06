@@ -12,6 +12,33 @@ pub struct UserAccount {
     pub updated_at: time::PrimitiveDateTime,
 }
 
+#[derive(Debug, Clone)]
+pub struct FindUserAccountByEmail {
+    pub email: String,
+}
+
+impl Processor<FindUserAccountByEmail, Result<Option<UserAccount>, sqlx::Error>>
+    for DatabaseProcessor
+{
+    #[instrument(skip_all, name = "SQL:FindUserAccountByEmail", err)]
+    async fn process(
+        &self,
+        input: FindUserAccountByEmail,
+    ) -> Result<Option<UserAccount>, sqlx::Error> {
+        sqlx::query_as!(
+            UserAccount,
+            r#"
+            SELECT id, name, email, created_at, updated_at
+            FROM "auth"."user_account"
+            WHERE email = $1
+            "#,
+            &input.email
+        )
+        .fetch_optional(self.db())
+        .await
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct FindUserAccountById {
     pub id: Uuid,

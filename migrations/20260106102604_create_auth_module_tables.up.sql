@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS "auth"."user_account"
     updated_at TIMESTAMP    NOT NULL DEFAULT NOW()
 );
 
+CREATE INDEX IF NOT EXISTS idx_user_account_email ON "auth"."user_account" (email);
+
 -- Create user_password table (stores password hashes)
 CREATE TABLE IF NOT EXISTS "auth"."user_password"
 (
