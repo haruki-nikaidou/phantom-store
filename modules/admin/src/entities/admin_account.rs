@@ -8,8 +8,8 @@ pub struct AdminAccount {
     pub role: AdminRole,
     pub name: CompactString,
     pub created_at: PrimitiveDateTime,
-    pub key_hash: String,
-    pub email: Option<CompactString>,
+    pub password_hash: CompactString,
+    pub email: String,
     pub avatar: Option<CompactString>,
 }
 
