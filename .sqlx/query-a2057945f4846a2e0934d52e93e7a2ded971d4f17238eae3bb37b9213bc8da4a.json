@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO application__config (key, content) VALUES ($1, $2)\n         ON CONFLICT (key) DO UPDATE SET content = EXCLUDED.content",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Json"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a2057945f4846a2e0934d52e93e7a2ded971d4f17238eae3bb37b9213bc8da4a"
+}
