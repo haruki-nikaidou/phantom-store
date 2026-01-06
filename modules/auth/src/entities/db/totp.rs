@@ -1,3 +1,6 @@
+use framework::sqlx::DatabaseProcessor;
+use kanau::processor::Processor;
+use tracing::instrument;
 use uuid::Uuid;
 
 #[derive(Clone, Eq, PartialEq, sqlx::FromRow)]
@@ -14,5 +17,72 @@ impl core::fmt::Debug for Totp {
             .field("secret", &"[REDACTED]")
             .field("created_at", &self.created_at)
             .finish()
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct FindTotpByUserId {
+    pub user_id: Uuid,
+}
+
+impl Processor<FindTotpByUserId, Result<Option<Totp>, sqlx::Error>> for DatabaseProcessor {
+    #[instrument(skip_all, name = "SQL:FindTotpByUserId", err)]
+    async fn process(&self, input: FindTotpByUserId) -> Result<Option<Totp>, sqlx::Error> {
+        sqlx::query_as!(
+            Totp,
+            r#"
+            SELECT user_id, secret, created_at
+            FROM "auth"."totp"
+            WHERE user_id = $1
+            "#,
+            input.user_id
+        )
+        .fetch_optional(self.db())
+        .await
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct CreateTotp {
+    pub user_id: Uuid,
+    pub secret: Vec<u8>,
+}
+
+impl Processor<CreateTotp, Result<Totp, sqlx::Error>> for DatabaseProcessor {
+    #[instrument(skip_all, name = "SQL:CreateTotp", err)]
+    async fn process(&self, input: CreateTotp) -> Result<Totp, sqlx::Error> {
+        sqlx::query_as!(
+            Totp,
+            r#"
+            INSERT INTO "auth"."totp" (user_id, secret)
+            VALUES ($1, $2)
+            RETURNING user_id, secret, created_at
+            "#,
+            input.user_id,
+            input.secret
+        )
+        .fetch_one(self.db())
+        .await
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct RemoveTotpByUserId {
+    pub user_id: Uuid,
+}
+
+impl Processor<RemoveTotpByUserId, Result<(), sqlx::Error>> for DatabaseProcessor {
+    #[instrument(skip_all, name = "SQL:RemoveTotpByUserId", err)]
+    async fn process(&self, input: RemoveTotpByUserId) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            r#"
+            DELETE FROM "auth"."totp"
+            WHERE user_id = $1
+            "#,
+            input.user_id
+        )
+        .execute(self.db())
+        .await
+        .map(|_| ())
     }
 }
