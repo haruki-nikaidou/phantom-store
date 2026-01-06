@@ -39,7 +39,7 @@ kanau = { version = "0.3", features = [
     "serde_json",
 ] }
 amqprs = { version = "2.1", features = ["uriparse", "urispec"] }
-sqlx = { version = "0.8", features = [
+sqlx = { version = "0.8",features = [
     "runtime-tokio",
     "tls-rustls",
     "postgres",
@@ -72,7 +72,7 @@ bincode = { version = "2.0.0", features = ["serde"] }
 urlencoding = "2.1"
 
 # Data types
-uuid = { version = "1.10", features = ["serde", "v4", "v7"] }
+uuid = { version = "1.19", features = ["serde", "v4", "v7"] }
 rust_decimal = { version = "1.37", features = ["rkyv"] }
 compact_str = { version = "0.9.0", features = [
     "serde",

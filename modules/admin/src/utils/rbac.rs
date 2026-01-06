@@ -1,7 +1,7 @@
-use crate::entities::admin_account::AdminRole;
+use crate::entities::admin_account::{AdminRole, FindAdminById};
 use framework::sqlx::DatabaseProcessor;
 use kanau::processor::Processor;
-use tracing::instrument;
+use tracing::{Span, instrument};
 use uuid::Uuid;
 
 pub struct AuthenticatedAdminOperation<T: AdminOperation> {
@@ -49,7 +49,22 @@ where
         processor: &Proc,
         input: AuthenticatedAdminOperation<Oper>,
     ) -> Result<Output, framework::Error> {
-        todo!()
+        let Some(admin) = self
+            .database_processor
+            .process(FindAdminById { id: input.admin_id })
+            .await?
+        else {
+            return Err(framework::Error::PermissionsDenied);
+        };
+
+        Span::current().record("admin_id", admin.id.to_string());
+        Span::current().record("admin_role", &format!("{:?}", admin.role));
+
+        let allowed = Oper::check_permission(admin.role);
+        if !allowed {
+            return Err(framework::Error::PermissionsDenied);
+        }
+        processor.process(input).await
     }
 }
 
