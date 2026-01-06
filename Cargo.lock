@@ -15,6 +15,7 @@ dependencies = [
  "anyhow",
  "compact_str",
  "framework",
+ "hex",
  "jsonwebtoken",
  "kanau",
  "prost",
