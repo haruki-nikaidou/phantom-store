@@ -68,3 +68,24 @@ CREATE INDEX IF NOT EXISTS idx_email_otp_email ON "auth"."email_otp" (email);
 CREATE INDEX IF NOT EXISTS idx_email_otp_expires_at ON "auth"."email_otp" (expires_at);
 CREATE INDEX IF NOT EXISTS idx_oauth_account_user_id ON "auth"."oauth_account" (user_id);
 CREATE INDEX IF NOT EXISTS idx_oauth_account_provider ON "auth"."oauth_account" (provider_name, provider_user_id);
+
+-- Create trigger function to auto-update updated_at column
+CREATE OR REPLACE FUNCTION "auth"."update_updated_at_column"()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create triggers for tables with updated_at column
+CREATE TRIGGER trigger_user_account_updated_at
+    BEFORE UPDATE ON "auth"."user_account"
+    FOR EACH ROW
+    EXECUTE FUNCTION "auth"."update_updated_at_column"();
+
+CREATE TRIGGER trigger_user_password_updated_at
+    BEFORE UPDATE ON "auth"."user_password"
+    FOR EACH ROW
+    EXECUTE FUNCTION "auth"."update_updated_at_column"();
+

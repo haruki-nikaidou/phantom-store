@@ -1,3 +1,10 @@
+-- Drop triggers
+DROP TRIGGER IF EXISTS trigger_user_password_updated_at ON "auth"."user_password";
+DROP TRIGGER IF EXISTS trigger_user_account_updated_at ON "auth"."user_account";
+
+-- Drop trigger function
+DROP FUNCTION IF EXISTS "auth"."update_updated_at_column"();
+
 -- Drop indexes
 DROP INDEX IF EXISTS "auth"."idx_oauth_account_provider";
 DROP INDEX IF EXISTS "auth"."idx_oauth_account_user_id";
