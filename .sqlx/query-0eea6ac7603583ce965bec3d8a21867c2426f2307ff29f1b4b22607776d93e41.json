@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO \"admin\".\"admin_account\" (role, password_hash, email, avatar) \n            VALUES ($1, $2, $3, $4)\n            RETURNING *\n            ",
+  "query": "\n            INSERT INTO \"admin\".\"admin_account\" (role, password_hash, email, avatar) \n            VALUES ($1, $2, $3, $4)\n            RETURNING\n            id, role as \"role: AdminRole\", name, created_at, email, avatar, password_hash\n            ",
   "describe": {
     "columns": [
       {
@@ -10,7 +10,7 @@
       },
       {
         "ordinal": 1,
-        "name": "role",
+        "name": "role: AdminRole",
         "type_info": {
           "Custom": {
             "name": "admin.admin_role",
@@ -35,17 +35,17 @@
       },
       {
         "ordinal": 4,
-        "name": "password_hash",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 5,
         "name": "email",
         "type_info": "Varchar"
       },
       {
-        "ordinal": 6,
+        "ordinal": 5,
         "name": "avatar",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "password_hash",
         "type_info": "Text"
       }
     ],
@@ -73,9 +73,9 @@
       false,
       false,
       false,
-      false,
-      true
+      true,
+      false
     ]
   },
-  "hash": "6e78c032cd0886f089b4c6be763983e9d990514004b093c6c69a867a6e84c61f"
+  "hash": "0eea6ac7603583ce965bec3d8a21867c2426f2307ff29f1b4b22607776d93e41"
 }
