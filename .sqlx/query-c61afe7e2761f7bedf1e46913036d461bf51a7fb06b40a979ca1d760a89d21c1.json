@@ -1,0 +1,95 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO \"shop\".\"coupon\" (code, set_active, discount, available_since, available_until, limit_to_category, limit_per_user, limit_total)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n            RETURNING\n            id, code, set_active,\n            discount as \"discount: sqlx::types::Json<Discount>\",\n            available_since, available_until, limit_to_category, limit_per_user, limit_total,\n            used_count, created_at, updated_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "code",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "set_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "discount: sqlx::types::Json<Discount>",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 4,
+        "name": "available_since",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 5,
+        "name": "available_until",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 6,
+        "name": "limit_to_category",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "limit_per_user",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "limit_total",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "used_count",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 11,
+        "name": "updated_at",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Bool",
+        "Jsonb",
+        "Timestamp",
+        "Timestamp",
+        "Int4",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "c61afe7e2761f7bedf1e46913036d461bf51a7fb06b40a979ca1d760a89d21c1"
+}

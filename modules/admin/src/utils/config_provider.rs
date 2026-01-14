@@ -1,7 +1,7 @@
+use framework::redis::RedisConnection;
 use redis::AsyncCommands;
 use sqlx::PgPool;
 use tracing::instrument;
-use framework::redis::RedisConnection;
 
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct ApplicationConfig {
@@ -88,15 +88,16 @@ pub async fn insert_config_into_db<T: ConfigJson + std::fmt::Debug>(
     db: impl sqlx::PgExecutor<'_>,
     config: &T,
 ) -> Result<(), framework::Error> {
-    let content = serde_json::to_value(config).map_err(|e| framework::Error::SerializeError(e.into()))?;
+    let content =
+        serde_json::to_value(config).map_err(|e| framework::Error::SerializeError(e.into()))?;
     sqlx::query!(
         r#"INSERT INTO application__config (key, content) VALUES ($1, $2)
          ON CONFLICT (key) DO UPDATE SET content = EXCLUDED.content"#,
         T::KEY,
         content
     )
-        .execute(db)
-        .await?;
+    .execute(db)
+    .await?;
     Ok(())
 }
 

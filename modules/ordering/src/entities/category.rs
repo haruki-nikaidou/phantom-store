@@ -66,12 +66,8 @@ impl
         input: ShowCategoryParentsAndChildren,
     ) -> Result<ShowCategoryParentsAndChildrenResult, sqlx::Error> {
         let (parents, children) = tokio::try_join!(
-            sqlx::query_file_as!(
-                Category,
-                "sql/show_category_parents.sql",
-                input.category_id
-            )
-            .fetch_all(self.db()),
+            sqlx::query_file_as!(Category, "sql/show_category_parents.sql", input.category_id)
+                .fetch_all(self.db()),
             sqlx::query_file_as!(
                 Category,
                 "sql/show_category_children.sql",
@@ -169,7 +165,7 @@ pub struct DeleteCategory {
 impl Processor<DeleteCategory, Result<bool, sqlx::Error>> for DatabaseProcessor {
     #[instrument(skip_all, name = "SQL:DeleteCategory", err)]
     async fn process(&self, input: DeleteCategory) -> Result<bool, sqlx::Error> {
-        let delete_result =  sqlx::query!(
+        let delete_result = sqlx::query!(
             r#"
             DELETE FROM "shop"."category"
             WHERE id = $1
