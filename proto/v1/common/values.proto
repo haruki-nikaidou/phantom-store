@@ -2,3 +2,20 @@ syntax = "proto3";
 package phantom_store.v1.common;
 
 message Empty {}
+
+message Date {
+  int32 year = 1;
+  uint32 month = 2;
+  uint32 day = 3;
+}
+
+message Duration {
+  int32 months = 1;
+  int32 days = 2;
+  int64 microseconds = 3;
+}
+
+message Timestamp {
+  int64 seconds = 1;
+  int32 nanos = 2;
+}

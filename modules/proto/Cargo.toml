@@ -8,6 +8,8 @@ tonic-prost = { workspace = true }
 tonic = { workspace = true }
 prost = { workspace = true }
 prost-types = { workspace = true }
+sqlx = { workspace = true }
+time = { workspace = true }
 
 [build-dependencies]
 tonic-prost-build = { workspace = true }

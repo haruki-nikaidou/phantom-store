@@ -3,6 +3,8 @@
 #![deny(clippy::expect_used)]
 #![forbid(clippy::panic)]
 
+mod common_types;
+
 pub mod v1 {
     pub mod common {
         tonic::include_proto!("phantom_store.v1.common");

@@ -2424,6 +2424,8 @@ version = "0.1.0"
 dependencies = [
  "prost",
  "prost-types",
+ "sqlx",
+ "time",
  "tonic",
  "tonic-prost",
  "tonic-prost-build",
