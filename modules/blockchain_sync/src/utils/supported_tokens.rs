@@ -1,4 +1,4 @@
-use crate::services::etherscan::chains::EtherScanChain;
+use crate::services::etherscan::EtherScanChain;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SupportedBlockchains {

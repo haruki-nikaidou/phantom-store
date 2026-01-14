@@ -4,5 +4,5 @@
 #![forbid(clippy::panic)]
 
 pub mod entities;
-pub mod utils;
 pub mod services;
+pub mod utils;
