@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- Recursively fetch all ancestor categories (from direct parent up to root)\n-- Results ordered from root ancestor to direct parent\nWITH RECURSIVE parent_categories AS (\n    -- Base case: get the direct parent of the input category\n    SELECT c.id, c.name, c.parent_id, c.description, 1 AS depth\n    FROM \"shop\".\"category\" c\n    WHERE c.id = (SELECT parent_id FROM \"shop\".\"category\" WHERE id = $1)\n\n    UNION ALL\n\n    -- Recursive case: traverse up to get all ancestors\n    SELECT c.id, c.name, c.parent_id, c.description, pc.depth + 1 AS depth\n    FROM \"shop\".\"category\" c\n    INNER JOIN parent_categories pc ON c.id = pc.parent_id\n)\nSELECT\n    id AS \"id!\",\n    name AS \"name!\",\n    parent_id,\n    description AS \"description!\"\nFROM parent_categories\nORDER BY depth DESC  -- Root ancestor first, direct parent last\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "name!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "parent_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "description!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "a624d86f0895b518c13a2754281e74537efd8213f0fba799b2e8b1239b4ba66f"
+}

@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    COALESCE(\n        (SELECT parent_id IS NOT NULL FROM \"shop\".\"category\" WHERE id = $1),\n        false\n    ) AS \"has_parent!: bool\",\n    EXISTS(\n        SELECT 1 FROM \"shop\".\"category\" WHERE parent_id = $1\n    ) AS \"has_children!: bool\",\n    EXISTS(\n        SELECT 1 FROM \"shop\".\"goods\" WHERE category_id = $1\n    ) AS \"has_goods!: bool\",\n    EXISTS(\n        SELECT 1 FROM \"shop\".\"coupon\" WHERE limit_to_category = $1\n    ) AS \"has_coupons!: bool\"\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "has_parent!: bool",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 1,
+        "name": "has_children!: bool",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "has_goods!: bool",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "has_coupons!: bool",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "bac5f613d723cfd52951c50cac2d7b3f116dbe531a671cec14e3ea43d834d497"
+}
