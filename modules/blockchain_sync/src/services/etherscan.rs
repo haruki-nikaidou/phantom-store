@@ -1,7 +1,7 @@
+use crate::utils::supported_tokens::StableCoin;
 use compact_str::CompactString;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use crate::utils::supported_tokens::StableCoin;
 
 #[derive(Clone)]
 pub struct EtherScanApiService {
@@ -20,6 +20,38 @@ pub enum EtherScanChain {
     Linea = 59144,
     Optimism = 10,
     AvalancheC = 43114,
+}
+
+impl serde::Serialize for EtherScanChain {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&(*self as i64).to_string())
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for EtherScanChain {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        let value: i64 = s.parse().map_err(serde::de::Error::custom)?;
+        match value {
+            1 => Ok(EtherScanChain::Ethereum),
+            137 => Ok(EtherScanChain::Polygon),
+            8453 => Ok(EtherScanChain::Base),
+            42161 => Ok(EtherScanChain::ArbitrumOne),
+            59144 => Ok(EtherScanChain::Linea),
+            10 => Ok(EtherScanChain::Optimism),
+            43114 => Ok(EtherScanChain::AvalancheC),
+            _ => Err(serde::de::Error::unknown_variant(
+                &s,
+                &["1", "137", "8453", "42161", "59144", "10", "43114"],
+            )),
+        }
+    }
 }
 
 pub struct FetchErc20TokenTransfers {
