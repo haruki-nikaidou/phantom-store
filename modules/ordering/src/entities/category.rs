@@ -3,7 +3,7 @@ use framework::sqlx::DatabaseProcessor;
 use kanau::processor::Processor;
 use tracing::instrument;
 
-#[derive(Debug, Clone, PartialEq, Eq, sqlx::FromRow)]
+#[derive(Debug, Clone, PartialEq, Eq, sqlx::FromRow, serde::Deserialize, serde::Serialize)]
 pub struct Category {
     pub id: i32,
     pub name: CompactString,
@@ -65,13 +65,22 @@ impl
         &self,
         input: ShowCategoryParentsAndChildren,
     ) -> Result<ShowCategoryParentsAndChildrenResult, sqlx::Error> {
-        sqlx::query_file_as!(
-            ShowCategoryParentsAndChildrenResult,
-            "sql/show_category_parents_and_children.sql",
-            input.category_id
-        )
-        .fetch_one(self.db())
-        .await
+        let (parents, children) = tokio::try_join!(
+            sqlx::query_file_as!(
+                Category,
+                "sql/show_category_parents.sql",
+                input.category_id
+            )
+            .fetch_all(self.db()),
+            sqlx::query_file_as!(
+                Category,
+                "sql/show_category_children.sql",
+                input.category_id
+            )
+            .fetch_all(self.db())
+        )?;
+
+        Ok(ShowCategoryParentsAndChildrenResult { parents, children })
     }
 }
 
