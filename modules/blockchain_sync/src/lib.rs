@@ -3,3 +3,6 @@
 #![forbid(clippy::expect_used)]
 #![forbid(clippy::panic)]
 
+pub mod entities;
+pub mod utils;
+pub mod services;

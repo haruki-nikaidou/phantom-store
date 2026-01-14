@@ -25,6 +25,7 @@ prost = { workspace = true }
 rand = { workspace = true }
 prost-types = { workspace = true }
 thiserror = { workspace = true }
+reqwest = { workspace = true }
 rkyv = { workspace = true }
 axum = { workspace = true }
 tower = { workspace = true }
