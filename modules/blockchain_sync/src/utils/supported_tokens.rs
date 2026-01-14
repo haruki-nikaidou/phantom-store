@@ -1,5 +1,13 @@
 use crate::services::etherscan::EtherScanChain;
 
+#[derive(Debug, thiserror::Error)]
+pub enum BlockchainSyncError {
+    #[error("Network error: {0}")]
+    Network(#[from] reqwest::Error),
+    #[error("Unsupported blockchain: {0:?}")]
+    UnsupportedBlockchain(SupportedBlockchains),
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SupportedBlockchains {
     EtherScan(EtherScanChain),
