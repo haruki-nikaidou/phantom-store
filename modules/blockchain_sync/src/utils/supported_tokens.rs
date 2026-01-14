@@ -13,6 +13,16 @@ pub enum StableCoinName {
     DAI,
 }
 
+impl StableCoinName {
+    pub fn info(&self) -> StableCoin {
+        match self {
+            StableCoinName::USDT => USDT,
+            StableCoinName::USDC => USDC,
+            StableCoinName::DAI => DAI,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StableCoin {
     name: StableCoinName,
