@@ -14,7 +14,8 @@ pub enum SupportedBlockchains {
     Tron,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[sqlx(type_name = "blockchain.stable_coin_name", rename_all = "UPPERCASE")]
 pub enum StableCoinName {
     USDT,
     USDC,

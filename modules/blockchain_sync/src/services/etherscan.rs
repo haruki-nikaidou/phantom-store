@@ -1,5 +1,6 @@
-use crate::utils::supported_tokens::StableCoin;
+use crate::utils::supported_tokens::{BlockchainSyncError, StableCoin};
 use compact_str::CompactString;
+use kanau::processor::Processor;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -9,8 +10,8 @@ pub struct EtherScanApiService {
     pub api_key: Arc<RwLock<CompactString>>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(i64)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[sqlx(rename_all = "lowercase", type_name = "blockchain.etherscan_chain")]
 /// https://docs.etherscan.io/supported-chains
 pub enum EtherScanChain {
     Ethereum = 1,
@@ -54,10 +55,36 @@ impl<'de> serde::Deserialize<'de> for EtherScanChain {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FetchErc20TokenTransfers {
     pub chain: EtherScanChain,
     pub stable_coin: StableCoin,
     pub address: CompactString,
     pub start_block: u64,
     pub end_block: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Erc20TokenTransferResponseItem {
+    pub block_number: String,
+    pub time_stamp: String,
+    pub from: String,
+    pub to: String,
+    pub value: String,
+    pub token_decimal: String,
+}
+
+impl
+    Processor<
+        FetchErc20TokenTransfers,
+        Result<Vec<Erc20TokenTransferResponseItem>, BlockchainSyncError>,
+    > for EtherScanApiService
+{
+    async fn process(
+        &self,
+        input: FetchErc20TokenTransfers,
+    ) -> Result<Vec<Erc20TokenTransferResponseItem>, BlockchainSyncError> {
+        todo!()
+    }
 }
