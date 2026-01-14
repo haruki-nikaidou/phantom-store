@@ -1,7 +1,7 @@
 [workspace]
 resolver = "3"
 members = [
-    "modules/admin", "modules/auth",
+    "modules/admin", "modules/auth", "modules/blockchain_sync",
     "modules/framework", "modules/key_shop",
     "modules/ordering",
     "modules/payment",
