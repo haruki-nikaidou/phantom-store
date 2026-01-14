@@ -1,2 +1,122 @@
 syntax = "proto3";
 package phantom_store.v1.auth.user;
+
+import "v1/auth/common/account.proto";
+import "v1/auth/common/email_otp.proto";
+
+service UserAuthService {
+  // email methods
+  rpc RegisterEmailAccount(RegisterEmailAccountRequest) returns (RegisterEmailAccountResponse);
+  rpc SendPreAuthorizeEmailOtp(SendPreAuthorizeEmailOtpRequest) returns (SendPreAuthorizeEmailOtpResponse);
+  rpc EmailOtpLogin(EmailOtpLoginRequest) returns (EmailOtpLoginResponse);
+  rpc EmailPasswordLogin(EmailPasswordLoginRequest) returns (EmailPasswordLoginResponse);
+  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
+
+  // MFA
+  rpc VerifyMfaToken(VerifyMfaTokenRequest) returns (VerifyMfaTokenResponse);
+
+  // OAuth
+  rpc OAuthCallback(OAuthCallbackRequest) returns (OAuthCallbackResponse);
+}
+
+message RegisterEmailAccountRequest {
+  string email = 1;
+  string otp = 2;
+  bool auto_login = 3;
+  optional string name = 4;
+  optional string password = 5;
+}
+
+message RegisterEmailAccountResponse {
+  phantom_store.v1.auth.common.LoginResult login_result = 1;
+  optional phantom_store.v1.auth.common.UserAccount user_account = 2;
+  optional string session_id = 3;
+}
+
+message SendPreAuthorizeEmailOtpRequest {
+  string email = 1;
+  phantom_store.v1.auth.common.EmailOtpUsage usage = 2;
+}
+
+message SendPreAuthorizeEmailOtpResponse {
+  phantom_store.v1.auth.common.EmailSendResult result = 1;
+}
+
+message EmailOtpLoginRequest {
+  string email = 1;
+  string otp = 2;
+}
+
+message EmailOtpLoginResponse {
+  phantom_store.v1.auth.common.LoginResult login_result = 1;
+  optional string session_id = 2;
+  optional bytes mfa_token = 3;
+}
+
+message EmailPasswordLoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message EmailPasswordLoginResponse {
+  phantom_store.v1.auth.common.LoginResult login_result = 1;
+  optional string session_id = 2;
+  optional bytes mfa_token = 3;
+}
+
+message VerifyMfaTokenRequest {
+  bytes mfa_token = 1;
+  string mfa_code = 2;
+}
+
+message VerifyMfaTokenResponse {
+  bool success = 1;
+  optional string session_id = 2;
+}
+
+message ResetPasswordRequest {
+  string email = 1;
+  string otp = 2;
+  string new_password = 3;
+  bool auto_login = 4;
+}
+
+message ResetPasswordResponse {
+  bool success = 1;
+  optional string session_id = 2;
+}
+
+message OAuthCallbackRequest {
+  string code = 1;
+  string state = 2;
+  string redirect_uri = 3;
+}
+
+message OAuthCallbackLoginBranchResult {
+  phantom_store.v1.auth.common.LoginResult login_result = 1;
+  optional string session_id = 2;
+  optional bytes mfa_token = 3;
+}
+
+enum OAuthAccountLinkingResult {
+  OAUTH_ACCOUNT_LINKING_RESULT_SUCCESS = 0;
+  OAUTH_ACCOUNT_LINKING_RESULT_DUPLICATED = 1;
+  OAUTH_ACCOUNT_LINKING_RESULT_NOT_FOUND = 2;
+}
+
+enum OAuthCallbackError {
+  OAUTH_CALLBACK_ERROR_INVALID_STATE = 0;
+  OAUTH_CALLBACK_ERROR_INVALID_CODE = 1;
+  OAUTH_CALLBACK_ERROR_ACTION_MISMATCH = 2;
+}
+
+message OAuthCallbackResponse {
+  oneof result {
+    // Login or register
+    OAuthCallbackLoginBranchResult login_result = 1;
+    // Linking an OAuth account to an existing user
+    OAuthAccountLinkingResult account_linking_result = 2;
+    // Error during routing/validation
+    OAuthCallbackError error = 3;
+  }
+}

@@ -1,0 +1,4 @@
+syntax = "proto3";
+package phantom_store.v1.common;
+
+message Empty {}

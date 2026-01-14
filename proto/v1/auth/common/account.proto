@@ -1,0 +1,44 @@
+syntax = "proto3";
+package phantom_store.v1.auth.common;
+
+message UserAccount {
+  // UUID string
+  string id = 1;
+  string name = 2;
+  string email = 3;
+  int64 created_at = 4;
+  int64 updated_at = 5;
+}
+
+message OAuthAccount {
+  int64 id = 1;
+  // UUID string
+  string user_id = 2;
+  OAuthProviderName provider_name = 3;
+  int64 registered_at = 4;
+  int64 token_updated_at = 5;
+}
+
+enum OAuthProviderName {
+  OAUTH_PROVIDER_NAME_GOOGLE = 0;
+  OAUTH_PROVIDER_NAME_MICROSOFT = 1;
+  OAUTH_PROVIDER_NAME_GITHUB = 2;
+  OAUTH_PROVIDER_NAME_DISCORD = 3;
+}
+
+message UserTotpStatus {
+  bool has_totp = 1;
+}
+
+message OAuthChallengeCallback {
+  string redirect_url = 1;
+  bytes state = 2;
+  string code = 3;
+}
+
+enum LoginResult {
+  LOGIN_RESULT_SUCCESS = 0;
+  LOGIN_RESULT_MFA_REQUIRED = 1;
+  LOGIN_RESULT_ACCOUNT_NOT_FOUND = 2;
+  LOGIN_RESULT_BLOCKED = 3;
+}

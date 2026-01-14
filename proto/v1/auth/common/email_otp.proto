@@ -1,0 +1,34 @@
+syntax = "proto3";
+package phantom_store.v1.auth.common;
+
+message EmailOtp {
+  int64 id = 1;
+  // UUID string
+  optional string user_id = 2;
+  string email = 3;
+  string otp_code = 4;
+  int64 created_at = 5;
+  int64 expires_at = 6;
+  bool has_been_used = 7;
+  optional int64 used_at = 8;
+  EmailOtpUsage usage = 9;
+}
+
+enum EmailOtpUsage {
+  // Pre-authorize. Send an email OTP for login.
+  EMAIL_OTP_USAGE_LOGIN = 0;
+  // Pre-authorize. Send an email OTP for password reset.
+  EMAIL_OTP_USAGE_PASSWORD_RESET = 1;
+  // Pre-authorize. Send an email OTP for registration.
+  Email_OTP_REGISTRATION = 2;
+  // Post-authorize. Send an email OTP when the user want to change his email address.
+  EMAIL_OTP_USAGE_CHANGE_EMAIL_ADDRESS = 3;
+  // Post-authorize. Send an email OTP when the user want to enter sudo mode.
+  EMAIL_OTP_USAGE_SUDO_MODE = 4;
+}
+
+enum EmailSendResult {
+  EMAIL_SEND_RESULT_SENT = 0;
+  EMAIL_SEND_RESULT_NOT_ALLOWED = 1;
+  EMAIL_SEND_RESULT_RATE_LIMITED = 2;
+}

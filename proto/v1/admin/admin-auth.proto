@@ -1,2 +1,15 @@
 syntax = "proto3";
 package phantom_store.v1.admin;
+
+service AdminAuthService {
+  rpc AdminLogin(AdminLoginRequest) returns (AdminLoginResponse);
+}
+
+message AdminLoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message AdminLoginResponse {
+  string session_id = 1;
+}
