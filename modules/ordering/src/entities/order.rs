@@ -22,6 +22,8 @@ pub struct UserOrder {
     pub payment_method: Option<PaymentMethod>,
     pub payment_method_info: sqlx::types::Json<PaymentMethodInfo>,
 
+    pub tracking_number: Option<String>,
+
     pub is_soft_deleted: bool,
 }
 
@@ -50,9 +52,6 @@ pub enum PaymentMethod {
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
 pub enum PaymentMethodInfo {
-    StableCoin {
-        txn_hash: String,
-    },
-    AdminOperation
-    // reversed for credit card, paypal and others
+    StableCoin { txn_hash: String },
+    AdminOperation, // reversed for credit card, paypal and others
 }
