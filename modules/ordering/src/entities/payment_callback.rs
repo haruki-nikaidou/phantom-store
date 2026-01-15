@@ -1,5 +1,5 @@
-use uuid::Uuid;
 use crate::entities::order::{PaymentMethod, PaymentMethodInfo};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Eq, sqlx::FromRow)]
 pub struct PaymentCallback {

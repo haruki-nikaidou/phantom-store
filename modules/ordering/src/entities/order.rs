@@ -27,7 +27,19 @@ pub struct UserOrder {
     pub is_soft_deleted: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type, serde::Serialize)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    sqlx::Type,
+    serde::Serialize,
+    serde::Deserialize,
+    rkyv::Archive,
+    rkyv::Serialize,
+    rkyv::Deserialize,
+)]
 #[sqlx(type_name = "shop.order_status", rename_all = "snake_case")]
 pub enum OrderStatus {
     Unpaid,
@@ -45,10 +57,20 @@ pub enum PaymentMethod {
     StableCoin,
     CreditCard,
     PayPal,
-    AdminOperation, // TODO
+    AdminOperation,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    serde::Serialize,
+    serde::Deserialize,
+    rkyv::Archive,
+    rkyv::Serialize,
+    rkyv::Deserialize,
+)]
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
 pub enum PaymentMethodInfo {
