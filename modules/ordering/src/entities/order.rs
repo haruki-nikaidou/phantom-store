@@ -47,6 +47,12 @@ pub enum PaymentMethod {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(tag = "type")]
+#[serde(rename_all = "snake_case")]
 pub enum PaymentMethodInfo {
-    // TODO
+    StableCoin {
+        txn_hash: String,
+    },
+    AdminOperation
+    // reversed for credit card, paypal and others
 }

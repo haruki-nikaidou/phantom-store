@@ -1,13 +1,12 @@
 use crate::services::etherscan::EtherScanChain;
 use crate::utils::supported_tokens::StableCoinName;
 
-pub struct EvmTokenTransfer {
+pub struct Erc20PendingDeposit {
     pub id: i64,
     pub token_name: StableCoinName,
     pub chain: EtherScanChain,
-    pub from_address: String,
-    pub to_address: String,
+    pub user_address: Option<String>,
     pub value: rust_decimal::Decimal,
-    pub block_number: u64,
-    pub block_timestamp: time::PrimitiveDateTime,
+    pub started_at: time::PrimitiveDateTime,
+    pub last_scanned_at: time::PrimitiveDateTime,
 }
