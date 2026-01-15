@@ -1,9 +1,10 @@
-use crate::utils::supported_tokens::StableCoinName;
+use crate::utils::supported_tokens::{FlattenSupportedBlockchains, StableCoinName};
 
 #[derive(Debug, Clone, PartialEq, Eq, sqlx::FromRow)]
-pub struct Trc20TokenTransfer {
+pub struct StableCoinTokenTransfer {
     pub id: i64,
     pub token_name: StableCoinName,
+    pub chain: FlattenSupportedBlockchains,
     pub from_address: String,
     pub to_address: String,
     pub txn_hash: String,

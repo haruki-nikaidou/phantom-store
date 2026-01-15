@@ -15,6 +15,80 @@ pub enum SupportedBlockchains {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[sqlx(
+    type_name = "blockchain.supported_blockchains",
+    rename_all = "lowercase"
+)]
+pub enum FlattenSupportedBlockchains {
+    Ethereum,
+    Polygon,
+    Base,
+    ArbitrumOne,
+    Linea,
+    Optimism,
+    AvalancheC,
+    Tron,
+}
+
+impl From<SupportedBlockchains> for FlattenSupportedBlockchains {
+    fn from(value: SupportedBlockchains) -> Self {
+        match value {
+            SupportedBlockchains::EtherScan(EtherScanChain::Ethereum) => {
+                FlattenSupportedBlockchains::Ethereum
+            }
+            SupportedBlockchains::EtherScan(EtherScanChain::Polygon) => {
+                FlattenSupportedBlockchains::Polygon
+            }
+            SupportedBlockchains::EtherScan(EtherScanChain::Base) => {
+                FlattenSupportedBlockchains::Base
+            }
+            SupportedBlockchains::EtherScan(EtherScanChain::ArbitrumOne) => {
+                FlattenSupportedBlockchains::ArbitrumOne
+            }
+            SupportedBlockchains::EtherScan(EtherScanChain::Linea) => {
+                FlattenSupportedBlockchains::Linea
+            }
+            SupportedBlockchains::EtherScan(EtherScanChain::Optimism) => {
+                FlattenSupportedBlockchains::Optimism
+            }
+            SupportedBlockchains::EtherScan(EtherScanChain::AvalancheC) => {
+                FlattenSupportedBlockchains::AvalancheC
+            }
+            SupportedBlockchains::Tron => FlattenSupportedBlockchains::Tron,
+        }
+    }
+}
+
+impl From<FlattenSupportedBlockchains> for SupportedBlockchains {
+    fn from(value: FlattenSupportedBlockchains) -> Self {
+        match value {
+            FlattenSupportedBlockchains::Ethereum => {
+                SupportedBlockchains::EtherScan(EtherScanChain::Ethereum)
+            }
+            FlattenSupportedBlockchains::Polygon => {
+                SupportedBlockchains::EtherScan(EtherScanChain::Polygon)
+            }
+            FlattenSupportedBlockchains::Base => {
+                SupportedBlockchains::EtherScan(EtherScanChain::Base)
+            }
+            FlattenSupportedBlockchains::ArbitrumOne => {
+                SupportedBlockchains::EtherScan(EtherScanChain::ArbitrumOne)
+            }
+            FlattenSupportedBlockchains::Linea => {
+                SupportedBlockchains::EtherScan(EtherScanChain::Linea)
+            }
+            FlattenSupportedBlockchains::Optimism => {
+                SupportedBlockchains::EtherScan(EtherScanChain::Optimism)
+            }
+            FlattenSupportedBlockchains::AvalancheC => {
+                SupportedBlockchains::EtherScan(EtherScanChain::AvalancheC)
+            }
+            FlattenSupportedBlockchains::Tron => SupportedBlockchains::Tron,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
 #[sqlx(type_name = "blockchain.stable_coin_name", rename_all = "UPPERCASE")]
 pub enum StableCoinName {
     USDT,
