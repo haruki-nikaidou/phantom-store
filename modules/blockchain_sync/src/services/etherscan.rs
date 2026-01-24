@@ -1,8 +1,10 @@
-use crate::utils::supported_tokens::{BlockchainSyncError, StableCoin};
+use crate::utils::supported_tokens::{BlockchainSyncError, StableCoin, SupportedBlockchains};
 use compact_str::CompactString;
 use kanau::processor::Processor;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+
+const ETHERSCAN_API_URL: &str = "https://api.etherscan.io/v2/api";
 
 #[derive(Clone)]
 pub struct EtherScanApiService {
@@ -75,6 +77,13 @@ pub struct Erc20TokenTransferResponseItem {
     pub token_decimal: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize)]
+struct EtherScanResponse<T> {
+    status: String,
+    message: String,
+    result: T,
+}
+
 impl Processor<FetchErc20TokenTransfers> for EtherScanApiService {
     type Output = Vec<Erc20TokenTransferResponseItem>;
     type Error = BlockchainSyncError;
@@ -83,6 +92,36 @@ impl Processor<FetchErc20TokenTransfers> for EtherScanApiService {
         &self,
         input: FetchErc20TokenTransfers,
     ) -> Result<Vec<Erc20TokenTransferResponseItem>, BlockchainSyncError> {
-        todo!()
+        let Some(contract_address) = input
+            .stable_coin
+            .get_contract_address(SupportedBlockchains::EtherScan(input.chain))
+        else {
+            return Err(BlockchainSyncError::UnsupportedBlockchain(
+                SupportedBlockchains::EtherScan(input.chain),
+            ));
+        };
+        let response = self
+            .client
+            .get(ETHERSCAN_API_URL)
+            .query(&[
+                ("apiKey", self.api_key.read().await.as_str()),
+                ("module", "account"),
+                ("action", "tokentx"),
+                ("contractaddress", contract_address),
+                ("address", input.address.as_str()),
+                ("startblock", input.start_block.to_string().as_str()),
+                ("endblock", input.end_block.to_string().as_str()),
+                ("page", "1"),
+                ("offset", "100"),
+                ("sort", "asc"),
+            ])
+            .send()
+            .await?;
+        let response: EtherScanResponse<Vec<Erc20TokenTransferResponseItem>> =
+            response.json().await?;
+        if response.status != "1" {
+            return Err(BlockchainSyncError::EtherScanError(response.message));
+        }
+        Ok(response.result)
     }
 }

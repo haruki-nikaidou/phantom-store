@@ -6,6 +6,8 @@ pub enum BlockchainSyncError {
     Network(#[from] reqwest::Error),
     #[error("Unsupported blockchain: {0:?}")]
     UnsupportedBlockchain(SupportedBlockchains),
+    #[error("Etherscan error: {0}")]
+    EtherScanError(String),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
