@@ -1,6 +1,6 @@
 use crate::entities::admin_account::{AdminRole, FindAdminById};
 use framework::sqlx::DatabaseProcessor;
-use kanau::processor::{IdentityFunctor, Processor};
+use kanau::processor::Processor;
 use tracing::{Span, instrument};
 use uuid::Uuid;
 
@@ -34,7 +34,10 @@ where
     type Output = Oper;
     type Error = framework::Error;
     #[instrument(skip_all, err)]
-    async fn process(&self, input: AuthenticatedAdminOperation<Oper>) -> Result<Oper, framework::Error> {
+    async fn process(
+        &self,
+        input: AuthenticatedAdminOperation<Oper>,
+    ) -> Result<Oper, framework::Error> {
         let Some(admin) = self
             .database_processor
             .process(FindAdminById { id: input.admin_id })
