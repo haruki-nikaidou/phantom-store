@@ -100,11 +100,13 @@ impl Processor<FetchErc20TokenTransfers> for EtherScanApiService {
                 SupportedBlockchains::EtherScan(input.chain),
             ));
         };
+        let chain_id = input.chain as i64;
         let response = self
             .client
             .get(ETHERSCAN_API_URL)
             .query(&[
                 ("apiKey", self.api_key.read().await.as_str()),
+                ("chainid", chain_id.to_string().as_str()),
                 ("module", "account"),
                 ("action", "tokentx"),
                 ("contractaddress", contract_address),
