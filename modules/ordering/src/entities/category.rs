@@ -24,9 +24,9 @@ pub struct CheckCategoryRelationResult {
     pub has_coupons: bool,
 }
 
-impl Processor<CheckCategoryRelation, Result<CheckCategoryRelationResult, sqlx::Error>>
-    for DatabaseProcessor
-{
+impl Processor<CheckCategoryRelation> for DatabaseProcessor {
+    type Output = CheckCategoryRelationResult;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:CheckCategoryRelation", err)]
     async fn process(
         &self,
@@ -54,12 +54,9 @@ pub struct ShowCategoryParentsAndChildrenResult {
     pub children: Vec<Category>,
 }
 
-impl
-    Processor<
-        ShowCategoryParentsAndChildren,
-        Result<ShowCategoryParentsAndChildrenResult, sqlx::Error>,
-    > for DatabaseProcessor
-{
+impl Processor<ShowCategoryParentsAndChildren> for DatabaseProcessor {
+    type Output = ShowCategoryParentsAndChildrenResult;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:ShowCategoryParentsAndChildren", err)]
     async fn process(
         &self,
@@ -85,7 +82,9 @@ pub struct FindCategoryById {
     pub id: i32,
 }
 
-impl Processor<FindCategoryById, Result<Option<Category>, sqlx::Error>> for DatabaseProcessor {
+impl Processor<FindCategoryById> for DatabaseProcessor {
+    type Output = Option<Category>;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:FindCategoryById", err)]
     async fn process(&self, input: FindCategoryById) -> Result<Option<Category>, sqlx::Error> {
         sqlx::query_as!(
@@ -109,7 +108,9 @@ pub struct CreateNewCategory {
     pub description: String,
 }
 
-impl Processor<CreateNewCategory, Result<Category, sqlx::Error>> for DatabaseProcessor {
+impl Processor<CreateNewCategory> for DatabaseProcessor {
+    type Output = Category;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:CreateNewCategory", err)]
     async fn process(&self, input: CreateNewCategory) -> Result<Category, sqlx::Error> {
         sqlx::query_as!(
@@ -136,7 +137,9 @@ pub struct UpdateCategory {
     pub description: String,
 }
 
-impl Processor<UpdateCategory, Result<Category, sqlx::Error>> for DatabaseProcessor {
+impl Processor<UpdateCategory> for DatabaseProcessor {
+    type Output = Category;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:UpdateCategory", err)]
     async fn process(&self, input: UpdateCategory) -> Result<Category, sqlx::Error> {
         sqlx::query_as!(
@@ -162,7 +165,9 @@ pub struct DeleteCategory {
     pub id: i32,
 }
 
-impl Processor<DeleteCategory, Result<bool, sqlx::Error>> for DatabaseProcessor {
+impl Processor<DeleteCategory> for DatabaseProcessor {
+    type Output = bool;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:DeleteCategory", err)]
     async fn process(&self, input: DeleteCategory) -> Result<bool, sqlx::Error> {
         let delete_result = sqlx::query!(

@@ -28,7 +28,9 @@ pub struct FindAdminById {
     pub id: Uuid,
 }
 
-impl Processor<FindAdminById, Result<Option<AdminAccount>, sqlx::Error>> for DatabaseProcessor {
+impl Processor<FindAdminById> for DatabaseProcessor {
+    type Output = Option<AdminAccount>;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:FindAdminById", err)]
     async fn process(&self, input: FindAdminById) -> Result<Option<AdminAccount>, sqlx::Error> {
         sqlx::query_as!(
@@ -53,7 +55,9 @@ pub struct CreateAdminAccount {
     pub avatar: Option<String>,
 }
 
-impl Processor<CreateAdminAccount, Result<AdminAccount, sqlx::Error>> for DatabaseProcessor {
+impl Processor<CreateAdminAccount> for DatabaseProcessor {
+    type Output = AdminAccount;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:CreateAdminAccount", err)]
     async fn process(&self, input: CreateAdminAccount) -> Result<AdminAccount, sqlx::Error> {
         sqlx::query_as!(

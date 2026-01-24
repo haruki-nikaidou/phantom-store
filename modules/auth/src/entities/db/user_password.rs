@@ -27,9 +27,9 @@ pub struct FindUserPasswordByUserId {
     pub user_id: Uuid,
 }
 
-impl Processor<FindUserPasswordByUserId, Result<Option<UserPassword>, sqlx::Error>>
-    for DatabaseProcessor
-{
+impl Processor<FindUserPasswordByUserId> for DatabaseProcessor {
+    type Output = Option<UserPassword>;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:FindUserPasswordByUserId", err)]
     async fn process(
         &self,
@@ -55,7 +55,9 @@ pub struct AppendUserPassword {
     pub password_hash: String,
 }
 
-impl Processor<AppendUserPassword, Result<UserPassword, sqlx::Error>> for DatabaseProcessor {
+impl Processor<AppendUserPassword> for DatabaseProcessor {
+    type Output = UserPassword;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:AppendUserPassword", err)]
     async fn process(&self, input: AppendUserPassword) -> Result<UserPassword, sqlx::Error> {
         sqlx::query_as!(
@@ -79,7 +81,9 @@ pub struct UpdateUserPassword {
     pub password_hash: String,
 }
 
-impl Processor<UpdateUserPassword, Result<UserPassword, sqlx::Error>> for DatabaseProcessor {
+impl Processor<UpdateUserPassword> for DatabaseProcessor {
+    type Output = UserPassword;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:UpdateUserPassword", err)]
     async fn process(&self, input: UpdateUserPassword) -> Result<UserPassword, sqlx::Error> {
         sqlx::query_as!(
@@ -105,7 +109,9 @@ pub struct RegisterUserWithPassword {
     pub password_hash: String,
 }
 
-impl Processor<RegisterUserWithPassword, Result<UserPassword, sqlx::Error>> for DatabaseProcessor {
+impl Processor<RegisterUserWithPassword> for DatabaseProcessor {
+    type Output = UserPassword;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL-Transaction:RegisterUserWithPassword", err)]
     async fn process(&self, input: RegisterUserWithPassword) -> Result<UserPassword, sqlx::Error> {
         let mut tx = self
@@ -149,7 +155,9 @@ pub struct DeleteUserPasswordByUserId {
     pub user_id: Uuid,
 }
 
-impl Processor<DeleteUserPasswordByUserId, Result<(), sqlx::Error>> for DatabaseProcessor {
+impl Processor<DeleteUserPasswordByUserId> for DatabaseProcessor {
+    type Output = ();
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:DeleteUserPasswordByUserId", err)]
     async fn process(&self, input: DeleteUserPasswordByUserId) -> Result<(), sqlx::Error> {
         sqlx::query!(

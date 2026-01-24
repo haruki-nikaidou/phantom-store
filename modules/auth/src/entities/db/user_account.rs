@@ -17,9 +17,9 @@ pub struct FindUserAccountByEmail {
     pub email: String,
 }
 
-impl Processor<FindUserAccountByEmail, Result<Option<UserAccount>, sqlx::Error>>
-    for DatabaseProcessor
-{
+impl Processor<FindUserAccountByEmail> for DatabaseProcessor {
+    type Output = Option<UserAccount>;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:FindUserAccountByEmail", err)]
     async fn process(
         &self,
@@ -44,9 +44,9 @@ pub struct FindUserAccountById {
     pub id: Uuid,
 }
 
-impl Processor<FindUserAccountById, Result<Option<UserAccount>, sqlx::Error>>
-    for DatabaseProcessor
-{
+impl Processor<FindUserAccountById> for DatabaseProcessor {
+    type Output = Option<UserAccount>;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:FindUserAccountById", err)]
     async fn process(
         &self,
@@ -72,7 +72,9 @@ pub struct UpdateUserEmail {
     pub email: String,
 }
 
-impl Processor<UpdateUserEmail, Result<UserAccount, sqlx::Error>> for DatabaseProcessor {
+impl Processor<UpdateUserEmail> for DatabaseProcessor {
+    type Output = UserAccount;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:UpdateUserEmail", err)]
     async fn process(&self, input: UpdateUserEmail) -> Result<UserAccount, sqlx::Error> {
         sqlx::query_as!(
@@ -97,7 +99,9 @@ pub struct UpdateUserName {
     pub name: Option<String>,
 }
 
-impl Processor<UpdateUserName, Result<UserAccount, sqlx::Error>> for DatabaseProcessor {
+impl Processor<UpdateUserName> for DatabaseProcessor {
+    type Output = UserAccount;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:UpdateUserName", err)]
     async fn process(&self, input: UpdateUserName) -> Result<UserAccount, sqlx::Error> {
         sqlx::query_as!(
@@ -122,9 +126,9 @@ pub struct RegisterPasswordlessUserAccount {
     pub name: Option<String>,
 }
 
-impl Processor<RegisterPasswordlessUserAccount, Result<UserAccount, sqlx::Error>>
-    for DatabaseProcessor
-{
+impl Processor<RegisterPasswordlessUserAccount> for DatabaseProcessor {
+    type Output = UserAccount;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:RegisterPasswordlessUserAccount", err)]
     async fn process(
         &self,

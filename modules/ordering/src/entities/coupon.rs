@@ -40,7 +40,9 @@ pub struct FindCouponByCode {
     pub code: String,
 }
 
-impl Processor<FindCouponByCode, Result<Option<Coupon>, sqlx::Error>> for DatabaseProcessor {
+impl Processor<FindCouponByCode> for DatabaseProcessor {
+    type Output = Option<Coupon>;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:FindCouponByCode", err)]
     async fn process(&self, input: FindCouponByCode) -> Result<Option<Coupon>, sqlx::Error> {
         sqlx::query_as!(
@@ -66,7 +68,9 @@ pub struct FindCouponById {
     pub id: i32,
 }
 
-impl Processor<FindCouponById, Result<Option<Coupon>, sqlx::Error>> for DatabaseProcessor {
+impl Processor<FindCouponById> for DatabaseProcessor {
+    type Output = Option<Coupon>;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:FindCouponById", err)]
     async fn process(&self, input: FindCouponById) -> Result<Option<Coupon>, sqlx::Error> {
         sqlx::query_as!(
@@ -99,7 +103,9 @@ pub struct CreateNewCoupon {
     pub limit_total: Option<i32>,
 }
 
-impl Processor<CreateNewCoupon, Result<Coupon, sqlx::Error>> for DatabaseProcessor {
+impl Processor<CreateNewCoupon> for DatabaseProcessor {
+    type Output = Coupon;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:CreateNewCoupon", err)]
     async fn process(&self, input: CreateNewCoupon) -> Result<Coupon, sqlx::Error> {
         sqlx::query_as!(
@@ -138,7 +144,9 @@ pub struct UpdateCoupon {
     pub limit_total: Option<i32>,
 }
 
-impl Processor<UpdateCoupon, Result<Coupon, sqlx::Error>> for DatabaseProcessor {
+impl Processor<UpdateCoupon> for DatabaseProcessor {
+    type Output = Coupon;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:UpdateCoupon", err)]
     async fn process(&self, input: UpdateCoupon) -> Result<Coupon, sqlx::Error> {
         sqlx::query_as!(
@@ -172,7 +180,9 @@ pub struct DisableOrEnableCoupon {
     pub set_active: bool,
 }
 
-impl Processor<DisableOrEnableCoupon, Result<Coupon, sqlx::Error>> for DatabaseProcessor {
+impl Processor<DisableOrEnableCoupon> for DatabaseProcessor {
+    type Output = Coupon;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:DisableOrEnableCoupon", err)]
     async fn process(&self, input: DisableOrEnableCoupon) -> Result<Coupon, sqlx::Error> {
         sqlx::query_as!(

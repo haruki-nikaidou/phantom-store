@@ -24,9 +24,9 @@ pub struct FindOAuthAccountByProviderUserId {
     pub provider_user_id: String,
 }
 
-impl Processor<FindOAuthAccountByProviderUserId, Result<Option<OAuthAccount>, sqlx::Error>>
-    for DatabaseProcessor
-{
+impl Processor<FindOAuthAccountByProviderUserId> for DatabaseProcessor {
+    type Output = Option<OAuthAccount>;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:FindOAuthAccountByProviderUserId", err)]
     async fn process(
         &self,
@@ -55,7 +55,9 @@ pub struct RegisterOAuthAccount {
     pub name: Option<String>,
 }
 
-impl Processor<RegisterOAuthAccount, Result<OAuthAccount, sqlx::Error>> for DatabaseProcessor {
+impl Processor<RegisterOAuthAccount> for DatabaseProcessor {
+    type Output = OAuthAccount;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL-Transaction:RegisterOAuthAccount", err)]
     async fn process(&self, input: RegisterOAuthAccount) -> Result<OAuthAccount, sqlx::Error> {
         let mut tx = self
@@ -100,7 +102,9 @@ pub struct DeleteOAuthAccountById {
     pub id: i64,
 }
 
-impl Processor<DeleteOAuthAccountById, Result<(), sqlx::Error>> for DatabaseProcessor {
+impl Processor<DeleteOAuthAccountById> for DatabaseProcessor {
+    type Output = ();
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:DeleteOAuthAccountById", err)]
     async fn process(&self, input: DeleteOAuthAccountById) -> Result<(), sqlx::Error> {
         sqlx::query!(
@@ -121,9 +125,9 @@ pub struct FindOAuthAccountsByUserId {
     pub user_id: Uuid,
 }
 
-impl Processor<FindOAuthAccountsByUserId, Result<Vec<OAuthAccount>, sqlx::Error>>
-    for DatabaseProcessor
-{
+impl Processor<FindOAuthAccountsByUserId> for DatabaseProcessor {
+    type Output = Vec<OAuthAccount>;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:FindOAuthAccountsByUserId", err)]
     async fn process(
         &self,
@@ -148,9 +152,9 @@ pub struct FindOAuthAccountById {
     pub id: i64,
 }
 
-impl Processor<FindOAuthAccountById, Result<Option<OAuthAccount>, sqlx::Error>>
-    for DatabaseProcessor
-{
+impl Processor<FindOAuthAccountById> for DatabaseProcessor {
+    type Output = Option<OAuthAccount>;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:FindOAuthAccountById", err)]
     async fn process(
         &self,
@@ -177,7 +181,9 @@ pub struct AppendOAuthAccount {
     pub provider_user_id: String,
 }
 
-impl Processor<AppendOAuthAccount, Result<OAuthAccount, sqlx::Error>> for DatabaseProcessor {
+impl Processor<AppendOAuthAccount> for DatabaseProcessor {
+    type Output = OAuthAccount;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:AppendOAuthAccount", err)]
     async fn process(&self, input: AppendOAuthAccount) -> Result<OAuthAccount, sqlx::Error> {
         sqlx::query_as!(

@@ -1755,9 +1755,9 @@ dependencies = [
 
 [[package]]
 name = "kanau"
-version = "0.3.0"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ced98219572cee1f4db38f79ba48239f5ea565c033af06b49f3ea8268a448fe"
+checksum = "c399f111a113822593fdb9ea78253f42015512fe9ea93de20e47acf07d3a0f42"
 dependencies = [
  "anyhow",
  "bincode",

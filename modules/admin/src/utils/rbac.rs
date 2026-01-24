@@ -1,6 +1,6 @@
 use crate::entities::admin_account::{AdminRole, FindAdminById};
 use framework::sqlx::DatabaseProcessor;
-use kanau::processor::Processor;
+use kanau::processor::{IdentityFunctor, Processor};
 use tracing::{Span, instrument};
 use uuid::Uuid;
 
@@ -27,28 +27,14 @@ impl AuthorizationLayer {
     }
 }
 
-impl<Oper, Output, Proc>
-    kanau::layer::Layer<AuthenticatedAdminOperation<Oper>, Result<Output, framework::Error>, Proc>
-    for AuthorizationLayer
+impl<Oper> Processor<AuthenticatedAdminOperation<Oper>> for AuthorizationLayer
 where
     Oper: AdminOperation + Send,
-    Output: Send,
-    Proc: Processor<AuthenticatedAdminOperation<Oper>, Result<Output, framework::Error>>
-        + Send
-        + Sync,
 {
-    #[instrument(
-        skip_all,
-        err,
-        fields(
-            admin_id = %input.admin_id,
-        )
-    )]
-    async fn wrap(
-        &self,
-        processor: &Proc,
-        input: AuthenticatedAdminOperation<Oper>,
-    ) -> Result<Output, framework::Error> {
+    type Output = Oper;
+    type Error = framework::Error;
+    #[instrument(skip_all, err)]
+    async fn process(&self, input: AuthenticatedAdminOperation<Oper>) -> Result<Oper, framework::Error> {
         let Some(admin) = self
             .database_processor
             .process(FindAdminById { id: input.admin_id })
@@ -62,9 +48,10 @@ where
 
         let allowed = Oper::check_permission(admin.role);
         if !allowed {
-            return Err(framework::Error::PermissionsDenied);
+            Err(framework::Error::PermissionsDenied)
+        } else {
+            Ok(input.operation)
         }
-        processor.process(input).await
     }
 }
 

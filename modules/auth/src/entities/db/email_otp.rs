@@ -40,7 +40,9 @@ pub struct CreateEmailOtp {
     pub expires_after: sqlx::postgres::types::PgInterval,
 }
 
-impl Processor<CreateEmailOtp, Result<EmailOtp, sqlx::Error>> for DatabaseProcessor {
+impl Processor<CreateEmailOtp> for DatabaseProcessor {
+    type Output = EmailOtp;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:CreateEmailOtp", err)]
     async fn process(&self, input: CreateEmailOtp) -> Result<EmailOtp, sqlx::Error> {
         let otp_code = generate_otp_code();
@@ -70,7 +72,9 @@ pub struct MarkEmailOtpAsUsed {
     pub id: i64,
 }
 
-impl Processor<MarkEmailOtpAsUsed, Result<EmailOtp, sqlx::Error>> for DatabaseProcessor {
+impl Processor<MarkEmailOtpAsUsed> for DatabaseProcessor {
+    type Output = EmailOtp;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:MarkEmailOtpAsUsed", err)]
     async fn process(&self, input: MarkEmailOtpAsUsed) -> Result<EmailOtp, sqlx::Error> {
         sqlx::query_as!(
@@ -98,7 +102,9 @@ pub struct FindEmailOtpBySource {
     pub usage: EmailOtpUsage,
 }
 
-impl Processor<FindEmailOtpBySource, Result<Vec<EmailOtp>, sqlx::Error>> for DatabaseProcessor {
+impl Processor<FindEmailOtpBySource> for DatabaseProcessor {
+    type Output = Vec<EmailOtp>;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:FindEmailOtpBySource", err)]
     async fn process(&self, input: FindEmailOtpBySource) -> Result<Vec<EmailOtp>, sqlx::Error> {
         sqlx::query_as!(
@@ -128,7 +134,9 @@ pub struct FindValidEmailOtp {
     pub otp_code: String,
 }
 
-impl Processor<FindValidEmailOtp, Result<Option<EmailOtp>, sqlx::Error>> for DatabaseProcessor {
+impl Processor<FindValidEmailOtp> for DatabaseProcessor {
+    type Output = Option<EmailOtp>;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:FindValidEmailOtp", err)]
     async fn process(&self, input: FindValidEmailOtp) -> Result<Option<EmailOtp>, sqlx::Error> {
         sqlx::query_as!(
@@ -157,7 +165,9 @@ pub struct DeleteEmailOtpBefore {
     pub before: time::PrimitiveDateTime,
 }
 
-impl Processor<DeleteEmailOtpBefore, Result<(), sqlx::Error>> for DatabaseProcessor {
+impl Processor<DeleteEmailOtpBefore> for DatabaseProcessor {
+    type Output = ();
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:DeleteEmailOtpBefore", err)]
     async fn process(&self, input: DeleteEmailOtpBefore) -> Result<(), sqlx::Error> {
         sqlx::query!(
@@ -179,7 +189,9 @@ pub struct CheckEmailFrequency {
     pub before: time::PrimitiveDateTime,
 }
 
-impl Processor<CheckEmailFrequency, Result<i64, sqlx::Error>> for DatabaseProcessor {
+impl Processor<CheckEmailFrequency> for DatabaseProcessor {
+    type Output = i64;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:CheckEmailFrequency", err)]
     async fn process(&self, input: CheckEmailFrequency) -> Result<i64, sqlx::Error> {
         sqlx::query!(

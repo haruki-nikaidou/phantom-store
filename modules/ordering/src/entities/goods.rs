@@ -19,7 +19,9 @@ pub struct FindGoodsById {
     pub id: i32,
 }
 
-impl Processor<FindGoodsById, Result<Option<Goods>, sqlx::Error>> for DatabaseProcessor {
+impl Processor<FindGoodsById> for DatabaseProcessor {
+    type Output = Option<Goods>;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:FindGoodsById", err)]
     async fn process(&self, input: FindGoodsById) -> Result<Option<Goods>, sqlx::Error> {
         sqlx::query_as!(
@@ -41,7 +43,9 @@ pub struct ListGoodsUnderCategory {
     pub category_id: i32,
 }
 
-impl Processor<ListGoodsUnderCategory, Result<Vec<Goods>, sqlx::Error>> for DatabaseProcessor {
+impl Processor<ListGoodsUnderCategory> for DatabaseProcessor {
+    type Output = Vec<Goods>;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:ListGoodsUnderCategory", err)]
     async fn process(&self, input: ListGoodsUnderCategory) -> Result<Vec<Goods>, sqlx::Error> {
         sqlx::query_as!(
@@ -69,7 +73,9 @@ pub struct CreateNewGoods {
     pub stock: i32,
 }
 
-impl Processor<CreateNewGoods, Result<Goods, sqlx::Error>> for DatabaseProcessor {
+impl Processor<CreateNewGoods> for DatabaseProcessor {
+    type Output = Goods;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:CreateNewGoods", err)]
     async fn process(&self, input: CreateNewGoods) -> Result<Goods, sqlx::Error> {
         sqlx::query_as!(
@@ -98,7 +104,9 @@ pub struct DecreaseGoodsStock {
     pub amount: i32,
 }
 
-impl Processor<DecreaseGoodsStock, Result<Goods, sqlx::Error>> for DatabaseProcessor {
+impl Processor<DecreaseGoodsStock> for DatabaseProcessor {
+    type Output = Goods;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:DecreaseGoodsStock", err)]
     async fn process(&self, input: DecreaseGoodsStock) -> Result<Goods, sqlx::Error> {
         sqlx::query_as!(
@@ -123,7 +131,9 @@ pub struct IncreaseGoodsStock {
     pub amount: i32,
 }
 
-impl Processor<IncreaseGoodsStock, Result<Goods, sqlx::Error>> for DatabaseProcessor {
+impl Processor<IncreaseGoodsStock> for DatabaseProcessor {
+    type Output = Goods;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:IncreaseGoodsStock", err)]
     async fn process(&self, input: IncreaseGoodsStock) -> Result<Goods, sqlx::Error> {
         sqlx::query_as!(
@@ -153,7 +163,9 @@ pub struct UpdateGoods {
     pub on_sale: bool,
 }
 
-impl Processor<UpdateGoods, Result<Goods, sqlx::Error>> for DatabaseProcessor {
+impl Processor<UpdateGoods> for DatabaseProcessor {
+    type Output = Goods;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:UpdateGoods", err)]
     async fn process(&self, input: UpdateGoods) -> Result<Goods, sqlx::Error> {
         sqlx::query_as!(

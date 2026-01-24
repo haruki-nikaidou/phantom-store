@@ -25,7 +25,9 @@ pub struct FindTotpByUserId {
     pub user_id: Uuid,
 }
 
-impl Processor<FindTotpByUserId, Result<Option<Totp>, sqlx::Error>> for DatabaseProcessor {
+impl Processor<FindTotpByUserId> for DatabaseProcessor {
+    type Output = Option<Totp>;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:FindTotpByUserId", err)]
     async fn process(&self, input: FindTotpByUserId) -> Result<Option<Totp>, sqlx::Error> {
         sqlx::query_as!(
@@ -48,7 +50,9 @@ pub struct CreateTotp {
     pub secret: Vec<u8>,
 }
 
-impl Processor<CreateTotp, Result<Totp, sqlx::Error>> for DatabaseProcessor {
+impl Processor<CreateTotp> for DatabaseProcessor {
+    type Output = Totp;
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:CreateTotp", err)]
     async fn process(&self, input: CreateTotp) -> Result<Totp, sqlx::Error> {
         sqlx::query_as!(
@@ -71,7 +75,9 @@ pub struct RemoveTotpByUserId {
     pub user_id: Uuid,
 }
 
-impl Processor<RemoveTotpByUserId, Result<(), sqlx::Error>> for DatabaseProcessor {
+impl Processor<RemoveTotpByUserId> for DatabaseProcessor {
+    type Output = ();
+    type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:RemoveTotpByUserId", err)]
     async fn process(&self, input: RemoveTotpByUserId) -> Result<(), sqlx::Error> {
         sqlx::query!(

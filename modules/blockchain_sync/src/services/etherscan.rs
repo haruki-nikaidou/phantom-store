@@ -75,12 +75,10 @@ pub struct Erc20TokenTransferResponseItem {
     pub token_decimal: String,
 }
 
-impl
-    Processor<
-        FetchErc20TokenTransfers,
-        Result<Vec<Erc20TokenTransferResponseItem>, BlockchainSyncError>,
-    > for EtherScanApiService
-{
+impl Processor<FetchErc20TokenTransfers> for EtherScanApiService {
+    type Output = Vec<Erc20TokenTransferResponseItem>;
+    type Error = BlockchainSyncError;
+    #[tracing::instrument(skip_all, err)]
     async fn process(
         &self,
         input: FetchErc20TokenTransfers,

@@ -90,7 +90,7 @@ pub trait AmqpMessageSend: MessageSer + Send + Sized + AmqpRouting {
 
 /// Trait for consuming message from rabbitmq
 pub trait AmqpMessageProcessor<Message: AmqpMessageSend + MessageDe>:
-    Processor<Message, Result<(), crate::error::Error>>
+    Processor<Message, Output = (), Error = crate::error::Error>
 {
     const QUEUE: &'static str;
 
