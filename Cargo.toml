@@ -34,7 +34,7 @@ anyhow = "1.0"
 
 # Framework
 framework = { path = "modules/framework" }
-kanau = { version = "0.4", features = [
+kanau = { version = "0.5", features = [
     "message",
     "rkyv",
     "bincode",

@@ -25,6 +25,11 @@ impl AuthorizationLayer {
     pub fn new(database_processor: DatabaseProcessor) -> Self {
         Self { database_processor }
     }
+    pub fn into_adapter(
+        self,
+    ) -> kanau::layer::Adapter<Self, kanau::processor::IdentityFunctor<framework::Error>> {
+        kanau::layer::Adapter::new(self, kanau::processor::IdentityFunctor::new())
+    }
 }
 
 impl<Oper> Processor<AuthenticatedAdminOperation<Oper>> for AuthorizationLayer

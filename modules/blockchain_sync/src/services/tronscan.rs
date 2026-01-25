@@ -1,7 +1,7 @@
+use crate::utils::supported_tokens::StableCoin;
+use compact_str::CompactString;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use compact_str::CompactString;
-use crate::utils::supported_tokens::StableCoin;
 
 pub struct TronScanApiService {
     pub client: reqwest::Client,
