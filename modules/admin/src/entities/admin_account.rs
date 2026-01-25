@@ -55,6 +55,30 @@ pub struct CreateAdminAccount {
     pub avatar: Option<String>,
 }
 
+#[derive(Debug, Clone)]
+pub struct FindAdminByEmail {
+    pub email: String,
+}
+
+impl Processor<FindAdminByEmail> for DatabaseProcessor {
+    type Output = Option<AdminAccount>;
+    type Error = sqlx::Error;
+    #[instrument(skip_all, name = "SQL:FindAdminByEmail", err)]
+    async fn process(&self, input: FindAdminByEmail) -> Result<Option<AdminAccount>, sqlx::Error> {
+        sqlx::query_as!(
+            AdminAccount,
+            r#"
+            SELECT id, role as "role: AdminRole", name, created_at, password_hash, email, avatar
+            FROM "admin"."admin_account"
+            WHERE email = $1
+            "#,
+            input.email
+        )
+        .fetch_optional(self.db())
+        .await
+    }
+}
+
 impl Processor<CreateAdminAccount> for DatabaseProcessor {
     type Output = AdminAccount;
     type Error = sqlx::Error;
