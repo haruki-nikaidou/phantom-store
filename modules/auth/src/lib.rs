@@ -8,3 +8,4 @@ pub mod entities;
 pub mod events;
 pub mod services;
 pub mod utils;
+pub mod rpc;
