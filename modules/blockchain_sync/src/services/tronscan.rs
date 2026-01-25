@@ -4,6 +4,7 @@ use kanau::processor::Processor;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+#[derive(Clone)]
 pub struct TronScanApiService {
     pub client: reqwest::Client,
     pub api_key: Arc<RwLock<CompactString>>,
