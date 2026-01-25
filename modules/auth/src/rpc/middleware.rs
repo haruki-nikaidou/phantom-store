@@ -1,17 +1,18 @@
-use crate::entities::redis::session::{Session, SessionId};
-use framework::now_time;
-use framework::redis::{KeyValueRead, KeyValueWrite, RedisConnection};
+use crate::entities::redis::session::SessionId;
+use crate::services::session::{RefreshSession, SessionService};
+use kanau::processor::Processor;
+use std::sync::Arc;
 use tonic::codegen::BoxFuture;
 use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct UserAuthLayer {
-    redis: RedisConnection,
+    session_service: Arc<SessionService>,
 }
 
 impl UserAuthLayer {
-    pub fn new(redis: RedisConnection) -> Self {
-        Self { redis }
+    pub fn new(session_service: Arc<SessionService>) -> Self {
+        Self { session_service }
     }
 }
 
@@ -20,7 +21,7 @@ impl<S> tower::Layer<S> for UserAuthLayer {
     fn layer(&self, inner: S) -> Self::Service {
         UserAuthMiddleware {
             inner,
-            redis: self.redis.clone(),
+            session_service: self.session_service.clone(),
         }
     }
 }
@@ -28,7 +29,7 @@ impl<S> tower::Layer<S> for UserAuthLayer {
 #[derive(Clone)]
 pub struct UserAuthMiddleware<S> {
     inner: S,
-    redis: RedisConnection,
+    session_service: Arc<SessionService>,
 }
 
 impl<S, ReqBody, ResBody> tower::Service<tonic::codegen::http::Request<ReqBody>>
@@ -55,11 +56,11 @@ where
     }
 
     fn call(&mut self, mut req: tonic::codegen::http::Request<ReqBody>) -> Self::Future {
-        let redis = self.redis.clone();
+        let session_service = self.session_service.clone();
         let inner_clone = self.inner.clone();
         let mut inner = std::mem::replace(&mut self.inner, inner_clone);
         Box::pin(async move {
-            if let Ok(user_id) = user_auth(req.headers(), redis).await {
+            if let Ok(user_id) = user_auth(req.headers(), session_service).await {
                 req.extensions_mut().insert(user_id);
             }
             inner.call(req).await
@@ -91,7 +92,7 @@ impl UserId {
 
 async fn user_auth(
     headers: &tonic::codegen::http::HeaderMap,
-    mut redis: RedisConnection,
+    session_service: Arc<SessionService>,
 ) -> Result<UserId, tonic::Status> {
     let header = headers
         .get(SESSION_ID_HEADER)
@@ -101,15 +102,9 @@ async fn user_auth(
         ))?;
     let session_id = SessionId::try_from_ascii_string(header)
         .map_err(|_| tonic::Status::unauthenticated("Invalid session id format"))?;
-    let mut session = Session::read(&mut redis, session_id)
+    let session = session_service
+        .process(RefreshSession { session_id })
         .await
-        .map_err(|_| tonic::Status::internal("Internal server error"))?
-        .ok_or(tonic::Status::unauthenticated("Invalid session"))?;
-    if session.terminated {
-        return Err(tonic::Status::unauthenticated("Session terminated"));
-    }
-    let now = now_time().assume_utc().unix_timestamp() as u64;
-    session.last_refreshed = now;
-    session.write(&mut redis).await?;
+        .map_err(|_| tonic::Status::unauthenticated("Invalid session"))?;
     Ok(UserId(session.user_id))
 }
