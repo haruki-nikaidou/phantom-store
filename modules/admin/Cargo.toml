@@ -19,7 +19,6 @@ time = { workspace = true }
 rand = { workspace = true }
 redis = { workspace = true }
 uuid = { workspace = true }
-jsonwebtoken = { workspace = true }
 tonic = { workspace = true }
 prost = { workspace = true }
 prost-types = { workspace = true }
@@ -27,3 +26,5 @@ tower = { workspace = true }
 framework = { workspace = true }
 hex = "0.4"
 phantom-shop-proto = { workspace = true }
+argon2 = { version = "0.5", features = ["std"] }
+
