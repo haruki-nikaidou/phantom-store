@@ -42,6 +42,15 @@ impl Processor<CreateSession> for SessionService {
             last_refreshed: now_timestamp,
         };
         session.write_with_ttl(&mut redis, session_ttl).await?;
+
+        // Track session in user's session set
+        UserSessions::add_session(
+            &mut redis,
+            UserSessionIndex(input.user_id),
+            session_id.0,
+        )
+        .await?;
+
         Ok(session_id)
     }
 }
@@ -81,7 +90,20 @@ impl Processor<TerminateSession> for SessionService {
     type Output = ();
     type Error = framework::Error;
     async fn process(&self, input: TerminateSession) -> Result<(), framework::Error> {
-        Session::delete(&mut self.redis.clone(), input.session_id).await?;
+        let mut redis = self.redis.clone();
+
+        // Read session to get user_id before deletion
+        if let Some(session) = Session::read(&mut redis, input.session_id).await? {
+            // Remove session from user's session set
+            UserSessions::remove_session(
+                &mut redis,
+                UserSessionIndex(session.user_id),
+                input.session_id.0,
+            )
+            .await?;
+        }
+
+        Session::delete(&mut redis, input.session_id).await?;
         Ok(())
     }
 }
