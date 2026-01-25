@@ -23,6 +23,19 @@ pub struct Session {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 pub struct SessionId(pub Uuid);
 
+impl SessionId {
+    pub fn generate() -> Self {
+        Self(Uuid::new_v4())
+    }
+    pub fn to_ascii_string(&self) -> String {
+        self.0.to_string()
+    }
+    pub fn try_from_ascii_string(s: &str) -> Result<Self, framework::Error> {
+        let uuid = Uuid::parse_str(s).map_err(|_| framework::Error::InvalidInput)?;
+        Ok(Self(uuid))
+    }
+}
+
 impl redis::ToSingleRedisArg for SessionId {}
 
 impl redis::ToRedisArgs for SessionId {

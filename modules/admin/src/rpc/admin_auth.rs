@@ -2,7 +2,7 @@ use crate::entities::admin_session::AdminSessionId;
 use crate::services::admin_auth::{
     AdminAuthService as InnerService, AdminLogin, AdminLoginResult, AdminLogout,
 };
-use crate::services::middleware::ADMIN_AUTHORIZATION_HEADER;
+use crate::rpc::middleware::ADMIN_AUTHORIZATION_HEADER;
 use kanau::processor::Processor;
 use phantom_shop_proto::v1::admin::{AdminLoginRequest, AdminLoginResponse};
 use phantom_shop_proto::v1::common::Empty;
