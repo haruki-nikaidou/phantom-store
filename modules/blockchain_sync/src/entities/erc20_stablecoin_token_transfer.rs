@@ -1,10 +1,11 @@
-use crate::utils::supported_tokens::{FlattenSupportedBlockchains, StableCoinName};
+use crate::services::etherscan::EtherScanChain;
+use crate::utils::supported_tokens::StableCoinName;
 
 #[derive(Debug, Clone, PartialEq, Eq, sqlx::FromRow)]
-pub struct StableCoinTokenTransfer {
+pub struct Erc20StablecoinTokenTransfer {
     pub id: i64,
     pub token_name: StableCoinName,
-    pub chain: FlattenSupportedBlockchains,
+    pub chain: EtherScanChain,
     pub from_address: String,
     pub to_address: String,
     pub txn_hash: String,
