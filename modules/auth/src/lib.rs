@@ -6,4 +6,5 @@
 pub mod config;
 pub mod entities;
 pub mod events;
+pub mod services;
 pub mod utils;
