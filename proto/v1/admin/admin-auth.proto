@@ -1,8 +1,11 @@
 syntax = "proto3";
 package phantom_store.v1.admin;
 
+import "v1/common/values.proto";
+
 service AdminAuthService {
   rpc AdminLogin(AdminLoginRequest) returns (AdminLoginResponse);
+  rpc AdminLogout(phantom_store.v1.common.Empty) returns (phantom_store.v1.common.Empty);
 }
 
 message AdminLoginRequest {

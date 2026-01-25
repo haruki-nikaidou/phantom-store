@@ -26,6 +26,4 @@ prost-types = { workspace = true }
 tower = { workspace = true }
 framework = { workspace = true }
 hex = "0.4"
-
-[build-dependencies]
-tonic-prost-build = { workspace = true }
+phantom-shop-proto = { workspace = true }

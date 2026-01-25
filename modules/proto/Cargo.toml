@@ -1,5 +1,5 @@
 [package]
-name = "proto"
+name = "phantom-shop-proto"
 version = "0.1.0"
 edition = "2024"
 

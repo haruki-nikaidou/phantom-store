@@ -3,6 +3,24 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 pub struct AdminSessionId(pub [u8; 32]);
 
+impl AdminSessionId {
+    pub fn generate() -> Self {
+        Self(rand::random())
+    }
+
+    pub fn to_ascii_string(&self) -> String {
+        hex::encode(self.0)
+    }
+
+    pub fn try_from_ascii_string(s: &str) -> Result<Self, framework::Error> {
+        let bytes = hex::decode(s).map_err(|_| framework::Error::InvalidInput)?;
+        let array = bytes
+            .try_into()
+            .map_err(|_| framework::Error::InvalidInput)?;
+        Ok(Self(array))
+    }
+}
+
 impl redis::ToSingleRedisArg for AdminSessionId {}
 
 impl redis::ToRedisArgs for AdminSessionId {
