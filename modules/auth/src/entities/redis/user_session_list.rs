@@ -18,6 +18,8 @@ pub struct UserSessions {
     pub session_ids: Vec<Uuid>,
 }
 
+// TODO: check suspicious behavior: the list may not be correctly tracked
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 pub struct UserSessionIndex(pub Uuid);
 
