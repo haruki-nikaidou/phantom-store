@@ -9,4 +9,5 @@ pub struct Trc20StableCoinTokenTransfer {
     pub value: rust_decimal::Decimal,
     pub block_number: u64,
     pub block_timestamp: time::PrimitiveDateTime,
+    pub confirmed: bool,
 }
