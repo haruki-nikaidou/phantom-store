@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM \"blockchain\".\"trc20_stablecoin_pending_deposit\"\n            WHERE started_at < $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamp"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b174de87d2629af44c2c0fa7d90a1b42d66d00c77bfd04c8160f1368b3aaf5f9"
+}

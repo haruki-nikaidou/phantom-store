@@ -1,0 +1,119 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT id, token_name as \"token_name: StableCoinName\", chain as \"chain: EtherScanChain\", user_address, wallet_address, value, started_at, last_scanned_at\n            FROM \"blockchain\".\"erc20_stablecoin_pending_deposit\"\n            WHERE wallet_address = $1 AND token_name = $2 AND chain = $3 AND user_address = $4\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "token_name: StableCoinName",
+        "type_info": {
+          "Custom": {
+            "name": "blockchain.stable_coin_name",
+            "kind": {
+              "Enum": [
+                "USDT",
+                "USDC",
+                "DAI"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "chain: EtherScanChain",
+        "type_info": {
+          "Custom": {
+            "name": "blockchain.etherscan_chain",
+            "kind": {
+              "Enum": [
+                "ethereum",
+                "polygon",
+                "base",
+                "arbitrumone",
+                "linea",
+                "optimism",
+                "avalanchec"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "user_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "wallet_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "value",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "started_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 7,
+        "name": "last_scanned_at",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        {
+          "Custom": {
+            "name": "blockchain.stable_coin_name",
+            "kind": {
+              "Enum": [
+                "USDT",
+                "USDC",
+                "DAI"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "blockchain.etherscan_chain",
+            "kind": {
+              "Enum": [
+                "ethereum",
+                "polygon",
+                "base",
+                "arbitrumone",
+                "linea",
+                "optimism",
+                "avalanchec"
+              ]
+            }
+          }
+        },
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "bec1df2dbe87d170a044ce657df9c37fed71f55c3b9b11055a35b5b5906c9e40"
+}

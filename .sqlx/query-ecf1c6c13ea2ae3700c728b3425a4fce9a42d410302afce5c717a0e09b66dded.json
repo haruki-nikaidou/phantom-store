@@ -1,0 +1,91 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE \"blockchain\".\"erc20_stablecoin_pending_deposit\"\n            SET last_scanned_at = $1\n            WHERE id = $2\n            RETURNING id, token_name as \"token_name: StableCoinName\", chain as \"chain: EtherScanChain\", user_address, wallet_address, value, started_at, last_scanned_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "token_name: StableCoinName",
+        "type_info": {
+          "Custom": {
+            "name": "blockchain.stable_coin_name",
+            "kind": {
+              "Enum": [
+                "USDT",
+                "USDC",
+                "DAI"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "chain: EtherScanChain",
+        "type_info": {
+          "Custom": {
+            "name": "blockchain.etherscan_chain",
+            "kind": {
+              "Enum": [
+                "ethereum",
+                "polygon",
+                "base",
+                "arbitrumone",
+                "linea",
+                "optimism",
+                "avalanchec"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "user_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "wallet_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "value",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "started_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 7,
+        "name": "last_scanned_at",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamp",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "ecf1c6c13ea2ae3700c728b3425a4fce9a42d410302afce5c717a0e09b66dded"
+}

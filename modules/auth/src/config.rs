@@ -99,6 +99,23 @@ impl Default for OAuthProvidersConfig {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct MfaConfig {
+    #[serde(default = "default_mfa_token_ttl")]
+    pub setup_code_ttl: time::Duration,
+    #[serde(default = "default_mfa_token_ttl")]
+    pub token_ttl: time::Duration,
+}
+
+impl Default for MfaConfig {
+    fn default() -> Self {
+        Self {
+            setup_code_ttl: default_mfa_token_ttl(),
+            token_ttl: default_mfa_token_ttl(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct AuthConfig {
     pub email_provider: EmailProviderConfig,
     pub session: SessionConfig,
@@ -107,10 +124,7 @@ pub struct AuthConfig {
     /// The duration for sudo token to expire
     #[serde(default = "default_sudo_token_ttl")]
     pub sudo_token_ttl: time::Duration,
-
-    /// The duration for MFA token to expire
-    #[serde(default = "default_mfa_token_ttl")]
-    pub mfa_token_ttl: time::Duration,
+    pub mfa: MfaConfig,
 }
 
 impl Default for AuthConfig {
@@ -120,7 +134,7 @@ impl Default for AuthConfig {
             email_provider: EmailProviderConfig::default(),
             session: SessionConfig::default(),
             oauth_providers: OAuthProvidersConfig::default(),
-            mfa_token_ttl: default_mfa_token_ttl(),
+            mfa: MfaConfig::default(),
         }
     }
 }

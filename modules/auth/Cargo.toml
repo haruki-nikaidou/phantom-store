@@ -37,6 +37,7 @@ rkyv = { workspace = true }
 oauth2 = { version = "5.0" }
 argon2 = { version = "0.5", features = ["std"] }
 hex = "0.4"
+totp-rs = "5.7"
 
 [build-dependencies]
 tonic-prost-build = { workspace = true }

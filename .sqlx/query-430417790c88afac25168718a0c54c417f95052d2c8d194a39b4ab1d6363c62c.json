@@ -1,0 +1,83 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO \"blockchain\".\"trc20_stablecoin_pending_deposit\" (token_name, user_address, wallet_address, value)\n            VALUES ($1, $2, $3, $4)\n            RETURNING id, token_name as \"token_name: StableCoinName\", user_address, wallet_address, value, started_at, last_scanned_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "token_name: StableCoinName",
+        "type_info": {
+          "Custom": {
+            "name": "blockchain.stable_coin_name",
+            "kind": {
+              "Enum": [
+                "USDT",
+                "USDC",
+                "DAI"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "user_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "wallet_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "value",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "started_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 6,
+        "name": "last_scanned_at",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "blockchain.stable_coin_name",
+            "kind": {
+              "Enum": [
+                "USDT",
+                "USDC",
+                "DAI"
+              ]
+            }
+          }
+        },
+        "Varchar",
+        "Varchar",
+        "Numeric"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "430417790c88afac25168718a0c54c417f95052d2c8d194a39b4ab1d6363c62c"
+}
