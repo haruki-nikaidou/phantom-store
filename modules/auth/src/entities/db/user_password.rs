@@ -172,3 +172,27 @@ impl Processor<DeleteUserPasswordByUserId> for DatabaseProcessor {
         .map(|_| ())
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct FindUserPasswordByEmail {
+    pub email: String,
+}
+
+impl Processor<FindUserPasswordByEmail> for DatabaseProcessor {
+    type Output = Option<UserPassword>;
+    type Error = sqlx::Error;
+    #[instrument(skip_all, name = "SQL:FindUserPasswordByEmail", err)]
+    async fn process(&self, input: FindUserPasswordByEmail) -> Result<Option<UserPassword>, sqlx::Error> {
+        sqlx::query_as!(
+            UserPassword,
+            r#"
+            SELECT user_id, password_hash, created_at, updated_at
+            FROM "auth"."user_password"
+            WHERE user_id = (SELECT id FROM "auth"."user_account" WHERE email = $1)
+            "#,
+            &input.email
+        )
+        .fetch_optional(self.db())
+        .await
+    }
+}

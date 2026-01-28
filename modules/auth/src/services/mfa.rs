@@ -164,6 +164,32 @@ impl Processor<FinishConfiguringTotp> for MfaService {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct CreateLoginMfaSession {
+    pub user_id: Uuid,
+}
+
+impl Processor<CreateLoginMfaSession> for MfaService {
+    type Output = MfaLoginToken;
+    type Error = framework::Error;
+    async fn process(
+        &self,
+        input: CreateLoginMfaSession,
+    ) -> Result<MfaLoginToken, framework::Error> {
+        let mut redis = self.redis.clone();
+        let config = find_config_from_redis::<AuthConfig>(&mut redis).await?;
+        let token_ttl: std::time::Duration = config.mfa.token_ttl.try_into().map_err(|e| {
+            framework::Error::BusinessPanic(anyhow::anyhow!("Invalid mfa token ttl: {e}"))
+        })?;
+        let token = MfaLoginToken {
+            token: rand::random(),
+            user_id: input.user_id,
+        };
+        token.write_with_ttl(&mut redis, token_ttl).await?;
+        Ok(token)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SudoMethod {
     Totp,
