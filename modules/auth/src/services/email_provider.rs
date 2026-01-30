@@ -12,6 +12,7 @@ use framework::rabbitmq::{AmqpMessageSend, AmqpPool};
 use framework::redis::RedisConnection;
 use framework::sqlx::DatabaseProcessor;
 use kanau::processor::Processor;
+use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct EmailProviderService {
@@ -126,13 +127,13 @@ impl Processor<LoginUserWithPassword> for EmailProviderService {
 }
 
 #[derive(Debug, Clone)]
-pub struct SendEmailOtp {
+struct SendEmailOtp {
     pub email: String,
     pub usage: EmailOtpUsage,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum SendEmailOtpResult {
+enum SendEmailOtpResult {
     Sent,
     InvalidEmailAddress,
     RateLimited,
@@ -191,5 +192,212 @@ impl Processor<SendEmailOtp> for EmailProviderService {
         .send(&self.mq)
         .await?;
         Ok(SendEmailOtpResult::Sent)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SendRegisterEmail {
+    pub email: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SendRegisterEmailResult {
+    Sent,
+    InvalidEmailAddress,
+    DuplicatedEmail,
+    RateLimited,
+}
+
+impl Processor<SendRegisterEmail> for EmailProviderService {
+    type Output = SendRegisterEmailResult;
+    type Error = framework::Error;
+    async fn process(
+        &self,
+        input: SendRegisterEmail,
+    ) -> Result<SendRegisterEmailResult, framework::Error> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct RegisterUser {
+    pub email: String,
+    pub otp: String,
+    pub password: Option<String>,
+    pub name: Option<String>,
+    pub auto_login: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RegisterUserResult {
+    Registered,
+    RegisteredWithSession(SessionId),
+    DuplicatedEmail,
+    InvalidOtp,
+}
+
+impl Processor<RegisterUser> for EmailProviderService {
+    type Output = RegisterUserResult;
+    type Error = framework::Error;
+    async fn process(&self, input: RegisterUser) -> Result<RegisterUserResult, framework::Error> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SendPasswordResetEmail {
+    pub email: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SendPasswordResetEmailResult {
+    /// The email is sent or the email address does not exist.
+    /// The user should not know if the email address exists.
+    MaybeSent,
+
+    /// The email address format is invalid.
+    InvalidEmailAddress,
+
+    /// The email is rate limited.
+    RateLimited,
+}
+
+impl Processor<SendPasswordResetEmail> for EmailProviderService {
+    type Output = SendPasswordResetEmailResult;
+    type Error = framework::Error;
+    async fn process(
+        &self,
+        input: SendPasswordResetEmail,
+    ) -> Result<SendPasswordResetEmailResult, framework::Error> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ResetPassword {
+    pub email: String,
+    pub otp: String,
+    pub new_password: String,
+    pub auto_login: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ResetPasswordResult {
+    Success,
+    InvalidOtp,
+    AccountNotFound,
+}
+
+impl Processor<ResetPassword> for EmailProviderService {
+    type Output = ResetPasswordResult;
+    type Error = framework::Error;
+    async fn process(&self, input: ResetPassword) -> Result<ResetPasswordResult, framework::Error> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct UserChangePassword {
+    pub user_id: Uuid,
+    pub sudo_token: [u8; 16],
+    pub new_password: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ChangePasswordResult {
+    Success,
+    SudoFailed,
+    NotFound,
+}
+
+impl Processor<UserChangePassword> for EmailProviderService {
+    type Output = ChangePasswordResult;
+    type Error = framework::Error;
+    async fn process(
+        &self,
+        input: UserChangePassword,
+    ) -> Result<ChangePasswordResult, framework::Error> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct UserRemovePassword {
+    pub user_id: Uuid,
+    pub sudo_token: [u8; 16],
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RemovePasswordResult {
+    Success,
+    SudoFailed,
+    AlreadyRemoved,
+    NotFound,
+}
+
+impl Processor<UserRemovePassword> for EmailProviderService {
+    type Output = RemovePasswordResult;
+    type Error = framework::Error;
+    async fn process(
+        &self,
+        input: UserRemovePassword,
+    ) -> Result<RemovePasswordResult, framework::Error> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct UserChangeEmailAddress {
+    pub user_id: Uuid,
+    pub sudo_token: [u8; 16],
+    pub new_email: String,
+    pub otp: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ChangeEmailAddressResult {
+    Success,
+    SudoFailed,
+    InvalidEmail,
+    InvalidOtp,
+    NotFound,
+}
+
+impl Processor<UserChangeEmailAddress> for EmailProviderService {
+    type Output = ChangeEmailAddressResult;
+    type Error = framework::Error;
+    async fn process(
+        &self,
+        input: UserChangeEmailAddress,
+    ) -> Result<ChangeEmailAddressResult, framework::Error> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone)]
+struct VerifyEmailOtp {
+    pub user_id: Uuid,
+    pub email: String,
+    pub otp: String,
+    pub usage: EmailOtpUsage,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum VerifyEmailOtpResult {
+    Success,
+    NotFound,
+    Expired,
+    Mismatch,
+    AlreadyUsed,
+}
+
+impl Processor<VerifyEmailOtp> for EmailProviderService {
+    type Output = VerifyEmailOtpResult;
+    type Error = framework::Error;
+    async fn process(
+        &self,
+        input: VerifyEmailOtp,
+    ) -> Result<VerifyEmailOtpResult, framework::Error> {
+        todo!()
     }
 }
