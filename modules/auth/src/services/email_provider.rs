@@ -1,10 +1,14 @@
+use crate::config::AuthConfig;
+use crate::entities::db::email_otp::{CheckEmailFrequency, CreateEmailOtp, EmailOtpUsage};
 use crate::entities::db::user_account::FindUserAccountByEmail;
 use crate::entities::db::user_password::{FindUserPasswordByEmail, FindUserPasswordByUserId};
 use crate::entities::redis::session::SessionId;
+use crate::events::email::OtpEmailSendCall;
 use crate::services::mfa::{CheckMfaEnabled, CreateLoginMfaSession, MfaService};
 use crate::services::session::{CreateSession, SessionService};
 use crate::utils::password::verify_password;
-use framework::rabbitmq::AmqpPool;
+use admin::utils::config_provider::find_config_from_redis;
+use framework::rabbitmq::{AmqpMessageSend, AmqpPool};
 use framework::redis::RedisConnection;
 use framework::sqlx::DatabaseProcessor;
 use kanau::processor::Processor;
@@ -118,5 +122,74 @@ impl Processor<LoginUserWithPassword> for EmailProviderService {
                 .await?;
             Ok(EmailLoginResult::Success(session_id))
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SendEmailOtp {
+    pub email: String,
+    pub usage: EmailOtpUsage,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SendEmailOtpResult {
+    Sent,
+    InvalidEmailAddress,
+    RateLimited,
+}
+
+impl Processor<SendEmailOtp> for EmailProviderService {
+    type Output = SendEmailOtpResult;
+    type Error = framework::Error;
+    async fn process(&self, input: SendEmailOtp) -> Result<SendEmailOtpResult, framework::Error> {
+        let config = find_config_from_redis::<AuthConfig>(&mut self.config_store.clone()).await?;
+        let email_allowed = config.email_provider.domain.check_addr(&input.email);
+        if !email_allowed {
+            return Ok(SendEmailOtpResult::InvalidEmailAddress);
+        }
+        let now = framework::now_time();
+        let before = now - config.email_provider.otp.resend_interval;
+        let freq = self
+            .db
+            .process(CheckEmailFrequency {
+                email: input.email.clone(),
+                before,
+            })
+            .await?;
+        if freq > 1 {
+            return Ok(SendEmailOtpResult::RateLimited);
+        }
+        let expires_after = config.email_provider.otp.expire_after.as_seconds_f64();
+        let expires_after = sqlx::postgres::types::PgInterval {
+            months: 0,
+            days: 0,
+            microseconds: (expires_after * 1_000_000.0) as i64,
+        };
+        let otp = self
+            .db
+            .process(CreateEmailOtp {
+                user_id: None,
+                email: input.email.clone(),
+                usage: input.usage,
+                expires_after,
+            })
+            .await?;
+        OtpEmailSendCall {
+            email_address: input.email,
+            otp_code: otp.otp_code,
+            otp_usage: input.usage,
+            expire_after: config
+                .email_provider
+                .otp
+                .expire_after
+                .try_into()
+                .map_err(|e| {
+                    framework::Error::BusinessPanic(anyhow::anyhow!("Invalid duration: {e}"))
+                })?,
+            sent_at: now.assume_utc().unix_timestamp() as u64,
+        }
+        .send(&self.mq)
+        .await?;
+        Ok(SendEmailOtpResult::Sent)
     }
 }
