@@ -612,35 +612,43 @@ impl Processor<UserRemovePassword> for EmailProviderService {
         &self,
         input: UserRemovePassword,
     ) -> Result<RemovePasswordResult, framework::Error> {
-        let verified = self
-            .mfa_service
-            .process(VerifySudoToken {
+        let (sudo_verified, target_account_exists, password_exists) = tokio::try_join!(
+            // sudo_verified
+            self.mfa_service.process(VerifySudoToken {
                 user_id: input.user_id,
                 token: input.sudo_token,
-            })
-            .await?;
-        if !verified {
+            }),
+            // target_account_exists
+            async {
+                self.db
+                    .process(FindUserAccountById { id: input.user_id })
+                    .await
+                    .map(|opt| opt.is_some())
+                    .map_err(Into::into)
+            },
+            // password_exists
+            async {
+                self.db
+                    .process(FindUserPasswordByUserId {
+                        user_id: input.user_id,
+                    })
+                    .await
+                    .map(|opt| opt.is_some())
+                    .map_err(Into::into)
+            }
+        )?; // tokio::try_join
+        if !sudo_verified {
             return Ok(RemovePasswordResult::SudoFailed);
         }
-        let Some(_) = self
-            .db
-            .process(FindUserAccountById { id: input.user_id })
-            .await?
-        else {
+        if !target_account_exists {
             return Ok(RemovePasswordResult::NotFound);
-        };
-        let Some(password) = self
-            .db
-            .process(FindUserPasswordByUserId {
-                user_id: input.user_id,
-            })
-            .await?
-        else {
+        }
+        if !password_exists {
             return Ok(RemovePasswordResult::AlreadyRemoved);
-        };
+        }
         self.db
             .process(DeleteUserPasswordByUserId {
-                user_id: password.user_id,
+                user_id: input.user_id,
             })
             .await?;
         Ok(RemovePasswordResult::Success)
@@ -677,16 +685,19 @@ impl Processor<UserChangeEmailAddress> for EmailProviderService {
             return Ok(ChangeEmailAddressResult::InvalidEmail);
         }
         let (sudo_verified, maybe_otp, target_user_exists, duplicated_email) = tokio::try_join!(
+            // sudo_verified
             self.mfa_service.process(VerifySudoToken {
                 user_id: input.user_id,
                 token: input.sudo_token,
             }),
+            // otp_verified
             self.process(VerifyEmailOtp {
                 user_id: input.user_id,
                 email: input.new_email.clone(),
                 otp: input.otp.clone(),
                 usage: EmailOtpUsage::ChangeEmailAddress,
             }),
+            // target_user_exists
             async {
                 self.db
                     .process(FindUserAccountById { id: input.user_id })
@@ -694,6 +705,7 @@ impl Processor<UserChangeEmailAddress> for EmailProviderService {
                     .map(|opt| opt.is_some())
                     .map_err(Into::into)
             },
+            // duplicated_email
             async {
                 self.db
                     .process(FindUserAccountByEmail {
@@ -703,7 +715,7 @@ impl Processor<UserChangeEmailAddress> for EmailProviderService {
                     .map(|opt| opt.is_some())
                     .map_err(Into::into)
             }
-        )?;
+        )?; // tokio::try_join
         if !sudo_verified {
             return Ok(ChangeEmailAddressResult::SudoFailed);
         }
