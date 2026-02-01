@@ -1,25 +1,15 @@
 use crate::entities::redis::oauth_challenge::OAuthChallengeKey;
 use crate::services::email_provider::{
-    EmailLoginResult, EmailProviderService, LoginUserWithPassword, RegisterPasswordless,
-    RegisterUser, RegisterUserResult, RegisterWithPassword, RouteRegisterUserResult,
-    SendPasswordResetEmail, SendPasswordResetEmailResult, SendRegisterEmail,
-    SendRegisterEmailResult,
+    EmailProviderService, LoginUserWithPassword, RegisterUser, RouteRegisterUserResult,
+    SendPasswordResetEmail, SendRegisterEmail,
 };
 use crate::services::mfa::{MfaService, VerifyMfaLogin, VerifyMfaLoginResult};
 use crate::services::oauth_provider::{
-    LinkOAuthAccountCallback, LinkOAuthAccountResult, OAuthCallback, OAuthCallbackRoute,
-    OAuthLogin, OAuthLoginOrRegisterRoute, OAuthLoginResult, OAuthLoginRouteResult,
-    OAuthProviderService, OAuthRegister,
+    OAuthCallback, OAuthCallbackRoute, OAuthLoginRouteResult, OAuthProviderService,
 };
 use kanau::processor::Processor;
 use phantom_shop_proto::v1::auth::common::{EmailSendResult, LoginResult};
-use phantom_shop_proto::v1::auth::user::{
-    EmailPasswordLoginRequest, EmailPasswordLoginResponse, OAuthAccountLinkingResult,
-    OAuthCallbackError, OAuthCallbackLoginBranchResult, OAuthCallbackRequest,
-    OAuthCallbackResponse, RegisterEmailAccountRequest, RegisterEmailAccountResponse,
-    ResetPasswordRequest, ResetPasswordResponse, SendPreAuthorizeEmailOtpRequest,
-    SendPreAuthorizeEmailOtpResponse, VerifyMfaTokenRequest, VerifyMfaTokenResponse,
-};
+use phantom_shop_proto::v1::auth::user as user_proto;
 use tonic::{Request, Response, Status};
 use url::Url;
 
@@ -49,8 +39,8 @@ impl phantom_shop_proto::v1::auth::user::user_auth_service_server::UserAuthServi
 {
     async fn register_email_account(
         &self,
-        request: Request<RegisterEmailAccountRequest>,
-    ) -> Result<Response<RegisterEmailAccountResponse>, Status> {
+        request: Request<user_proto::RegisterEmailAccountRequest>,
+    ) -> Result<Response<user_proto::RegisterEmailAccountResponse>, Status> {
         let req = request.into_inner();
 
         // First, route the registration to determine if password or passwordless
@@ -74,22 +64,8 @@ impl phantom_shop_proto::v1::auth::user::user_auth_service_server::UserAuthServi
                     .await
                     .map_err(|e| Status::internal(e.to_string()))?;
 
-                match result {
-                    RegisterUserResult::Registered => {
-                        Ok(Response::new(RegisterEmailAccountResponse {
-                            login_result: LoginResult::Success.into(),
-                            user_account: None,
-                            session_id: None,
-                        }))
-                    }
-                    RegisterUserResult::RegisteredWithSession(session_id) => {
-                        Ok(Response::new(RegisterEmailAccountResponse {
-                            login_result: LoginResult::Success.into(),
-                            user_account: None,
-                            session_id: Some(session_id.to_ascii_string()),
-                        }))
-                    }
-                }
+                let proto_result: user_proto::RegisterEmailAccountResponse = result.into();
+                Ok(Response::new(proto_result))
             }
             RouteRegisterUserResult::Passwordless(register_passwordless) => {
                 let result = self
@@ -98,32 +74,18 @@ impl phantom_shop_proto::v1::auth::user::user_auth_service_server::UserAuthServi
                     .await
                     .map_err(|e| Status::internal(e.to_string()))?;
 
-                match result {
-                    RegisterUserResult::Registered => {
-                        Ok(Response::new(RegisterEmailAccountResponse {
-                            login_result: LoginResult::Success.into(),
-                            user_account: None,
-                            session_id: None,
-                        }))
-                    }
-                    RegisterUserResult::RegisteredWithSession(session_id) => {
-                        Ok(Response::new(RegisterEmailAccountResponse {
-                            login_result: LoginResult::Success.into(),
-                            user_account: None,
-                            session_id: Some(session_id.to_ascii_string()),
-                        }))
-                    }
-                }
+                let proto_result: user_proto::RegisterEmailAccountResponse = result.into();
+                Ok(Response::new(proto_result))
             }
             RouteRegisterUserResult::InvalidOtp => {
-                Ok(Response::new(RegisterEmailAccountResponse {
+                Ok(Response::new(user_proto::RegisterEmailAccountResponse {
                     login_result: LoginResult::AccountNotFound.into(),
                     user_account: None,
                     session_id: None,
                 }))
             }
             RouteRegisterUserResult::DuplicatedEmail => {
-                Ok(Response::new(RegisterEmailAccountResponse {
+                Ok(Response::new(user_proto::RegisterEmailAccountResponse {
                     login_result: LoginResult::Blocked.into(),
                     user_account: None,
                     session_id: None,
@@ -134,8 +96,8 @@ impl phantom_shop_proto::v1::auth::user::user_auth_service_server::UserAuthServi
 
     async fn send_pre_authorize_email_otp(
         &self,
-        request: Request<SendPreAuthorizeEmailOtpRequest>,
-    ) -> Result<Response<SendPreAuthorizeEmailOtpResponse>, Status> {
+        request: Request<user_proto::SendPreAuthorizeEmailOtpRequest>,
+    ) -> Result<Response<user_proto::SendPreAuthorizeEmailOtpResponse>, Status> {
         let req = request.into_inner();
 
         // Only handle registration and password reset OTP
@@ -149,17 +111,13 @@ impl phantom_shop_proto::v1::auth::user::user_auth_service_server::UserAuthServi
                     .await
                     .map_err(|e| Status::internal(e.to_string()))?;
 
-                let proto_result = match result {
-                    SendPasswordResetEmailResult::MaybeSent => EmailSendResult::Sent,
-                    SendPasswordResetEmailResult::InvalidEmailAddress => {
-                        EmailSendResult::NotAllowed
-                    }
-                    SendPasswordResetEmailResult::RateLimited => EmailSendResult::RateLimited,
-                };
+                let proto_result: EmailSendResult = result.into();
 
-                Ok(Response::new(SendPreAuthorizeEmailOtpResponse {
-                    result: proto_result.into(),
-                }))
+                Ok(Response::new(
+                    user_proto::SendPreAuthorizeEmailOtpResponse {
+                        result: proto_result.into(),
+                    },
+                ))
             }
             phantom_shop_proto::v1::auth::common::EmailOtpUsage::EmailOtpRegistration => {
                 let result = self
@@ -168,16 +126,13 @@ impl phantom_shop_proto::v1::auth::user::user_auth_service_server::UserAuthServi
                     .await
                     .map_err(|e| Status::internal(e.to_string()))?;
 
-                let proto_result = match result {
-                    SendRegisterEmailResult::Sent => EmailSendResult::Sent,
-                    SendRegisterEmailResult::InvalidEmailAddress => EmailSendResult::NotAllowed,
-                    SendRegisterEmailResult::DuplicatedEmail => EmailSendResult::NotAllowed,
-                    SendRegisterEmailResult::RateLimited => EmailSendResult::RateLimited,
-                };
+                let proto_result: EmailSendResult = result.into();
 
-                Ok(Response::new(SendPreAuthorizeEmailOtpResponse {
-                    result: proto_result.into(),
-                }))
+                Ok(Response::new(
+                    user_proto::SendPreAuthorizeEmailOtpResponse {
+                        result: proto_result.into(),
+                    },
+                ))
             }
             _ => {
                 // Login OTP is not implemented (private processor)
@@ -198,8 +153,8 @@ impl phantom_shop_proto::v1::auth::user::user_auth_service_server::UserAuthServi
 
     async fn email_password_login(
         &self,
-        request: Request<EmailPasswordLoginRequest>,
-    ) -> Result<Response<EmailPasswordLoginResponse>, Status> {
+        request: Request<user_proto::EmailPasswordLoginRequest>,
+    ) -> Result<Response<user_proto::EmailPasswordLoginResponse>, Status> {
         let req = request.into_inner();
 
         let result = self
@@ -211,38 +166,14 @@ impl phantom_shop_proto::v1::auth::user::user_auth_service_server::UserAuthServi
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        match result {
-            EmailLoginResult::Success(session_id) => {
-                Ok(Response::new(EmailPasswordLoginResponse {
-                    login_result: LoginResult::Success.into(),
-                    session_id: Some(session_id.to_ascii_string()),
-                    mfa_token: None,
-                }))
-            }
-            EmailLoginResult::WrongCredential => Ok(Response::new(EmailPasswordLoginResponse {
-                login_result: LoginResult::AccountNotFound.into(),
-                session_id: None,
-                mfa_token: None,
-            })),
-            EmailLoginResult::MethodNotAvailable => Ok(Response::new(EmailPasswordLoginResponse {
-                login_result: LoginResult::AccountNotFound.into(),
-                session_id: None,
-                mfa_token: None,
-            })),
-            EmailLoginResult::MfaRequired(mfa_token) => {
-                Ok(Response::new(EmailPasswordLoginResponse {
-                    login_result: LoginResult::MfaRequired.into(),
-                    session_id: None,
-                    mfa_token: Some(mfa_token.to_vec()),
-                }))
-            }
-        }
+        let proto_result: user_proto::EmailPasswordLoginResponse = result.into();
+        Ok(Response::new(proto_result))
     }
 
     async fn reset_password(
         &self,
-        request: Request<ResetPasswordRequest>,
-    ) -> Result<Response<ResetPasswordResponse>, Status> {
+        request: Request<user_proto::ResetPasswordRequest>,
+    ) -> Result<Response<user_proto::ResetPasswordResponse>, Status> {
         let req = request.into_inner();
 
         let result = self
@@ -256,38 +187,14 @@ impl phantom_shop_proto::v1::auth::user::user_auth_service_server::UserAuthServi
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        match result {
-            crate::services::email_provider::ResetPasswordResult::Success => {
-                Ok(Response::new(ResetPasswordResponse {
-                    success: true,
-                    session_id: None,
-                }))
-            }
-            crate::services::email_provider::ResetPasswordResult::SuccessWithSession(
-                session_id,
-            ) => Ok(Response::new(ResetPasswordResponse {
-                success: true,
-                session_id: Some(session_id.to_ascii_string()),
-            })),
-            crate::services::email_provider::ResetPasswordResult::InvalidOtp => {
-                Ok(Response::new(ResetPasswordResponse {
-                    success: false,
-                    session_id: None,
-                }))
-            }
-            crate::services::email_provider::ResetPasswordResult::AccountNotFound => {
-                Ok(Response::new(ResetPasswordResponse {
-                    success: false,
-                    session_id: None,
-                }))
-            }
-        }
+        let proto_result: user_proto::ResetPasswordResponse = result.into();
+        Ok(Response::new(proto_result))
     }
 
     async fn verify_mfa_token(
         &self,
-        request: Request<VerifyMfaTokenRequest>,
-    ) -> Result<Response<VerifyMfaTokenResponse>, Status> {
+        request: Request<user_proto::VerifyMfaTokenRequest>,
+    ) -> Result<Response<user_proto::VerifyMfaTokenResponse>, Status> {
         let req = request.into_inner();
 
         let mfa_token: [u8; 32] = req
@@ -308,24 +215,26 @@ impl phantom_shop_proto::v1::auth::user::user_auth_service_server::UserAuthServi
 
         match result {
             VerifyMfaLoginResult::Success(session_id) => {
-                Ok(Response::new(VerifyMfaTokenResponse {
+                Ok(Response::new(user_proto::VerifyMfaTokenResponse {
                     success: true,
                     session_id: Some(session_id.to_ascii_string()),
                 }))
             }
             VerifyMfaLoginResult::InvalidToken
             | VerifyMfaLoginResult::InvalidCode
-            | VerifyMfaLoginResult::NoNeed => Ok(Response::new(VerifyMfaTokenResponse {
-                success: false,
-                session_id: None,
-            })),
+            | VerifyMfaLoginResult::NoNeed => {
+                Ok(Response::new(user_proto::VerifyMfaTokenResponse {
+                    success: false,
+                    session_id: None,
+                }))
+            }
         }
     }
 
     async fn o_auth_callback(
         &self,
-        request: Request<OAuthCallbackRequest>,
-    ) -> Result<Response<OAuthCallbackResponse>, Status> {
+        request: Request<user_proto::OAuthCallbackRequest>,
+    ) -> Result<Response<user_proto::OAuthCallbackResponse>, Status> {
         let req = request.into_inner();
 
         let state: OAuthChallengeKey = req
@@ -367,34 +276,8 @@ impl phantom_shop_proto::v1::auth::user::user_auth_service_server::UserAuthServi
                             .await
                             .map_err(|e| Status::internal(e.to_string()))?;
 
-                        match login_result {
-                            OAuthLoginResult::LoggedIn(session_id) => {
-                                Ok(Response::new(OAuthCallbackResponse {
-                                    result: Some(
-                                        phantom_shop_proto::v1::auth::user::o_auth_callback_response::Result::LoginResult(
-                                            OAuthCallbackLoginBranchResult {
-                                                login_result: LoginResult::Success.into(),
-                                                session_id: Some(session_id.to_ascii_string()),
-                                                mfa_token: None,
-                                            },
-                                        ),
-                                    ),
-                                }))
-                            }
-                            OAuthLoginResult::RequiredMfa(mfa_token) => {
-                                Ok(Response::new(OAuthCallbackResponse {
-                                    result: Some(
-                                        phantom_shop_proto::v1::auth::user::o_auth_callback_response::Result::LoginResult(
-                                            OAuthCallbackLoginBranchResult {
-                                                login_result: LoginResult::MfaRequired.into(),
-                                                session_id: None,
-                                                mfa_token: Some(mfa_token.to_vec()),
-                                            },
-                                        ),
-                                    ),
-                                }))
-                            }
-                        }
+                        let proto_result: user_proto::OAuthCallbackResponse = login_result.into();
+                        Ok(Response::new(proto_result))
                     }
                     OAuthLoginRouteResult::Register(oauth_register) => {
                         let register_result = self
@@ -403,12 +286,14 @@ impl phantom_shop_proto::v1::auth::user::user_auth_service_server::UserAuthServi
                             .await
                             .map_err(|e| Status::internal(e.to_string()))?;
 
-                        Ok(Response::new(OAuthCallbackResponse {
+                        Ok(Response::new(user_proto::OAuthCallbackResponse {
                             result: Some(
-                                phantom_shop_proto::v1::auth::user::o_auth_callback_response::Result::LoginResult(
-                                    OAuthCallbackLoginBranchResult {
+                                user_proto::o_auth_callback_response::Result::LoginResult(
+                                    user_proto::OAuthCallbackLoginBranchResult {
                                         login_result: LoginResult::Success.into(),
-                                        session_id: Some(register_result.session_id.to_ascii_string()),
+                                        session_id: Some(
+                                            register_result.session_id.to_ascii_string(),
+                                        ),
                                         mfa_token: None,
                                     },
                                 ),
@@ -424,40 +309,28 @@ impl phantom_shop_proto::v1::auth::user::user_auth_service_server::UserAuthServi
                     .await
                     .map_err(|e| Status::internal(e.to_string()))?;
 
-                let proto_result = match result {
-                    LinkOAuthAccountResult::Success => {
-                        OAuthAccountLinkingResult::OauthAccountLinkingResultSuccess
-                    }
-                    LinkOAuthAccountResult::AlreadyExists => {
-                        OAuthAccountLinkingResult::OauthAccountLinkingResultDuplicated
-                    }
-                    LinkOAuthAccountResult::InvalidState | LinkOAuthAccountResult::UserMismatch => {
-                        OAuthAccountLinkingResult::OauthAccountLinkingResultNotFound
-                    }
-                };
+                let proto_result: user_proto::OAuthAccountLinkingResult = result.into();
 
-                Ok(Response::new(OAuthCallbackResponse {
+                Ok(Response::new(user_proto::OAuthCallbackResponse {
                     result: Some(
-                        phantom_shop_proto::v1::auth::user::o_auth_callback_response::Result::AccountLinkingResult(
+                        user_proto::o_auth_callback_response::Result::AccountLinkingResult(
                             proto_result.into(),
                         ),
                     ),
                 }))
             }
-            OAuthCallbackRoute::Unmatched => Ok(Response::new(OAuthCallbackResponse {
-                result: Some(
-                    phantom_shop_proto::v1::auth::user::o_auth_callback_response::Result::Error(
-                        OAuthCallbackError::OauthCallbackErrorActionMismatch.into(),
-                    ),
-                ),
+            OAuthCallbackRoute::Unmatched => Ok(Response::new(user_proto::OAuthCallbackResponse {
+                result: Some(user_proto::o_auth_callback_response::Result::Error(
+                    user_proto::OAuthCallbackError::OauthCallbackErrorActionMismatch.into(),
+                )),
             })),
-            OAuthCallbackRoute::InvalidState => Ok(Response::new(OAuthCallbackResponse {
-                result: Some(
-                    phantom_shop_proto::v1::auth::user::o_auth_callback_response::Result::Error(
-                        OAuthCallbackError::OauthCallbackErrorInvalidState.into(),
-                    ),
-                ),
-            })),
+            OAuthCallbackRoute::InvalidState => {
+                Ok(Response::new(user_proto::OAuthCallbackResponse {
+                    result: Some(user_proto::o_auth_callback_response::Result::Error(
+                        user_proto::OAuthCallbackError::OauthCallbackErrorInvalidState.into(),
+                    )),
+                }))
+            }
         }
     }
 }

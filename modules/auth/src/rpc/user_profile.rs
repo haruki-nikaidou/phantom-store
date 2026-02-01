@@ -1,5 +1,7 @@
 use crate::rpc::middleware::UserId;
-use crate::services::user_account::{UpdateUserName, UserAccountService as InnerUserAccountService};
+use crate::services::user_account::{
+    UpdateUserName, UserAccountService as InnerUserAccountService,
+};
 use kanau::processor::Processor;
 use phantom_shop_proto::v1::auth::user::{UpdateUserNameRequest, UpdateUserNameResponse};
 use tonic::{Request, Response, Status};

@@ -1,7 +1,6 @@
 use crate::rpc::middleware::UserId;
 use crate::services::mfa::{
-    CheckMfaEnabled, FinishConfiguringTotp, FinishConfiguringTotpResult, MfaService, RemoveMfa,
-    StartConfiguringTotp,
+    CheckMfaEnabled, FinishConfiguringTotp, MfaService, RemoveMfa, StartConfiguringTotp,
 };
 use kanau::processor::Processor;
 use phantom_shop_proto::v1::auth::common::UserTotpStatus;
@@ -101,16 +100,7 @@ impl phantom_shop_proto::v1::auth::user::totp_service_server::TotpService for To
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        let proto_result = match result {
-            FinishConfiguringTotpResult::Success => FinishTotpSetupResult::Success,
-            FinishConfiguringTotpResult::InvalidCode => {
-                FinishTotpSetupResult::InvalidCode
-            }
-            FinishConfiguringTotpResult::Duplicate => {
-                FinishTotpSetupResult::Duplicate
-            }
-            FinishConfiguringTotpResult::Expired => FinishTotpSetupResult::Expired,
-        };
+        let proto_result: FinishTotpSetupResult = result.into();
 
         Ok(Response::new(FinishTotpSetupResponse {
             result: proto_result.into(),
