@@ -3,7 +3,9 @@ use crate::entities::db::email_otp::{
     CheckEmailFrequency, CreateEmailOtp, EmailOtp, EmailOtpUsage, FindValidEmailOtp,
     MarkEmailOtpAsUsed,
 };
-use crate::entities::db::user_account::{FindUserAccountByEmail, FindUserAccountById, RegisterPasswordlessUserAccount, UpdateUserEmail};
+use crate::entities::db::user_account::{
+    FindUserAccountByEmail, FindUserAccountById, RegisterPasswordlessUserAccount, UpdateUserEmail,
+};
 use crate::entities::db::user_password::{
     DeleteUserPasswordByUserId, FindUserPasswordByEmail, FindUserPasswordByUserId,
     RegisterUserWithPassword, UpdateUserPassword,
@@ -659,6 +661,7 @@ pub enum ChangeEmailAddressResult {
     SudoFailed,
     InvalidEmail,
     InvalidOtp,
+    EmailAddressDuplicated,
     NotFound,
 }
 
@@ -669,47 +672,49 @@ impl Processor<UserChangeEmailAddress> for EmailProviderService {
         &self,
         input: UserChangeEmailAddress,
     ) -> Result<ChangeEmailAddressResult, framework::Error> {
-        let verified = self
-            .mfa_service
-            .process(VerifySudoToken {
-                user_id: input.user_id,
-                token: input.sudo_token,
-            })
-            .await?;
-        if !verified {
-            return Ok(ChangeEmailAddressResult::SudoFailed);
-        }
-        let Some(otp) = self
-            .process(VerifyEmailOtp {
-                user_id: input.user_id,
-                email: input.new_email.clone(),
-                otp: input.otp.clone(),
-                usage: EmailOtpUsage::ChangeEmailAddress,
-            })
-            .await?
-        else {
-            return Ok(ChangeEmailAddressResult::InvalidOtp);
-        };
-        let Some(_) = self
-            .db
-            .process(FindUserAccountById { id: input.user_id })
-            .await?
-        else {
-            return Ok(ChangeEmailAddressResult::NotFound);
-        };
         let config = find_config_from_redis::<AuthConfig>(&mut self.config_store.clone()).await?;
         if !config.email_provider.domain.check_addr(&input.new_email) {
             return Ok(ChangeEmailAddressResult::InvalidEmail);
         }
-        let account_exists = self
-            .db
-            .process(FindUserAccountByEmail {
+        let (sudo_verified, maybe_otp, target_user_exists, duplicated_email) = tokio::try_join!(
+            self.mfa_service.process(VerifySudoToken {
+                user_id: input.user_id,
+                token: input.sudo_token,
+            }),
+            self.process(VerifyEmailOtp {
+                user_id: input.user_id,
                 email: input.new_email.clone(),
-            })
-            .await?
-            .is_some();
-        if account_exists {
-            return Ok(ChangeEmailAddressResult::InvalidEmail);
+                otp: input.otp.clone(),
+                usage: EmailOtpUsage::ChangeEmailAddress,
+            }),
+            async {
+                self.db
+                    .process(FindUserAccountById { id: input.user_id })
+                    .await
+                    .map(|opt| opt.is_some())
+                    .map_err(Into::into)
+            },
+            async {
+                self.db
+                    .process(FindUserAccountByEmail {
+                        email: input.new_email.clone(),
+                    })
+                    .await
+                    .map(|opt| opt.is_some())
+                    .map_err(Into::into)
+            }
+        )?;
+        if !sudo_verified {
+            return Ok(ChangeEmailAddressResult::SudoFailed);
+        }
+        let Some(otp) = maybe_otp else {
+            return Ok(ChangeEmailAddressResult::InvalidOtp);
+        };
+        if !target_user_exists {
+            return Ok(ChangeEmailAddressResult::NotFound);
+        }
+        if duplicated_email {
+            return Ok(ChangeEmailAddressResult::EmailAddressDuplicated);
         }
         self.db
             .process(UpdateUserEmail {
@@ -717,6 +722,7 @@ impl Processor<UserChangeEmailAddress> for EmailProviderService {
                 email: input.new_email.clone(),
             })
             .await?;
+        self.db.process(MarkEmailOtpAsUsed { id: otp.id }).await?;
         Ok(ChangeEmailAddressResult::Success)
     }
 }
