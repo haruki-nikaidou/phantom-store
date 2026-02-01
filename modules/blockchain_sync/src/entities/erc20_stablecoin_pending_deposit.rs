@@ -30,7 +30,10 @@ impl Processor<CreateErc20StablecoinPendingDeposit> for DatabaseProcessor {
 
     type Error = sqlx::Error;
 
-    async fn process(&self, input: CreateErc20StablecoinPendingDeposit) -> Result<Erc20StablecoinPendingDeposit, sqlx::Error> {
+    async fn process(
+        &self,
+        input: CreateErc20StablecoinPendingDeposit,
+    ) -> Result<Erc20StablecoinPendingDeposit, sqlx::Error> {
         sqlx::query_as!(
             Erc20StablecoinPendingDeposit,
             r#"
@@ -38,10 +41,10 @@ impl Processor<CreateErc20StablecoinPendingDeposit> for DatabaseProcessor {
             VALUES ($1, $2, $3, $4, $5)
             RETURNING id, token_name as "token_name: StableCoinName", chain as "chain: EtherScanChain", user_address, wallet_address, value, started_at, last_scanned_at
             "#,
-            input.token_name as StableCoinName, 
+            input.token_name as StableCoinName,
             input.chain as EtherScanChain,
-            input.user_address, 
-            input.wallet_address, 
+            input.user_address,
+            input.wallet_address,
             input.value
         )
         .fetch_one(self.db())
@@ -61,7 +64,10 @@ impl Processor<FindErc20DepositByWalletAddress> for DatabaseProcessor {
     type Output = Vec<Erc20StablecoinPendingDeposit>;
     type Error = sqlx::Error;
 
-    async fn process(&self, input: FindErc20DepositByWalletAddress) -> Result<Vec<Erc20StablecoinPendingDeposit>, sqlx::Error> {
+    async fn process(
+        &self,
+        input: FindErc20DepositByWalletAddress,
+    ) -> Result<Vec<Erc20StablecoinPendingDeposit>, sqlx::Error> {
         sqlx::query_as!(
             Erc20StablecoinPendingDeposit,
             r#"
@@ -89,7 +95,10 @@ impl Processor<UpdateErc20StablecoinPendingDeposit> for DatabaseProcessor {
     type Output = Erc20StablecoinPendingDeposit;
     type Error = sqlx::Error;
 
-    async fn process(&self, input: UpdateErc20StablecoinPendingDeposit) -> Result<Erc20StablecoinPendingDeposit, sqlx::Error> {
+    async fn process(
+        &self,
+        input: UpdateErc20StablecoinPendingDeposit,
+    ) -> Result<Erc20StablecoinPendingDeposit, sqlx::Error> {
         sqlx::query_as!(
             Erc20StablecoinPendingDeposit,
             r#"

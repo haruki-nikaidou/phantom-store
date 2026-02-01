@@ -182,7 +182,10 @@ impl Processor<FindUserPasswordByEmail> for DatabaseProcessor {
     type Output = Option<UserPassword>;
     type Error = sqlx::Error;
     #[instrument(skip_all, name = "SQL:FindUserPasswordByEmail", err)]
-    async fn process(&self, input: FindUserPasswordByEmail) -> Result<Option<UserPassword>, sqlx::Error> {
+    async fn process(
+        &self,
+        input: FindUserPasswordByEmail,
+    ) -> Result<Option<UserPassword>, sqlx::Error> {
         sqlx::query_as!(
             UserPassword,
             r#"

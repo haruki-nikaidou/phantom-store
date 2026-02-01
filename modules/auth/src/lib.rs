@@ -6,6 +6,6 @@
 pub mod config;
 pub mod entities;
 pub mod events;
+pub mod rpc;
 pub mod services;
 pub mod utils;
-pub mod rpc;

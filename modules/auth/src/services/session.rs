@@ -44,12 +44,8 @@ impl Processor<CreateSession> for SessionService {
         session.write_with_ttl(&mut redis, session_ttl).await?;
 
         // Track session in user's session set
-        UserSessions::add_session(
-            &mut redis,
-            UserSessionIndex(input.user_id),
-            session_id.0,
-        )
-        .await?;
+        UserSessions::add_session(&mut redis, UserSessionIndex(input.user_id), session_id.0)
+            .await?;
 
         Ok(session_id)
     }
@@ -166,14 +162,15 @@ impl Processor<TerminateAllUserSessions> for SessionService {
     type Output = ();
     type Error = framework::Error;
     async fn process(&self, input: TerminateAllUserSessions) -> Result<(), framework::Error> {
-        let sessions = self.process(ListUserSessions {
-            user_id: input.user_id,
-        })
-        .await?;
+        let sessions = self
+            .process(ListUserSessions {
+                user_id: input.user_id,
+            })
+            .await?;
         let mut terminate_stream = parallel_map(
-            sessions.into_iter().map(|s| TerminateSession {
-                session_id: s.id,
-            }),
+            sessions
+                .into_iter()
+                .map(|s| TerminateSession { session_id: s.id }),
             self,
         );
         while let Some(Ok(())) = terminate_stream.next().await {}
