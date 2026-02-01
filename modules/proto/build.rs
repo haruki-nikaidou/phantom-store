@@ -11,6 +11,7 @@ fn main() -> std::io::Result<()> {
                 "../../proto/v1/auth/common/email_otp.proto",
                 "../../proto/v1/auth/user/account-manage.proto",
                 "../../proto/v1/auth/user/auth.proto",
+                "../../proto/v1/auth/user/mfa.proto",
             ],
             &["../../proto"],
         )?;
