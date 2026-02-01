@@ -498,7 +498,7 @@ impl Processor<ResetPassword> for EmailProviderService {
     type Output = ResetPasswordResult;
     type Error = framework::Error;
     async fn process(&self, input: ResetPassword) -> Result<ResetPasswordResult, framework::Error> {
-        let Some(_) = self
+        let Some(otp) = self
             .process(VerifyEmailOtp {
                 user_id: Uuid::nil(),
                 email: input.email.clone(),
@@ -526,6 +526,7 @@ impl Processor<ResetPassword> for EmailProviderService {
                 password_hash,
             })
             .await?;
+        self.db.process(MarkEmailOtpAsUsed { id: otp.id }).await?;
         self.session_service
             .process(TerminateAllUserSessions { user_id: user.id })
             .await?;
