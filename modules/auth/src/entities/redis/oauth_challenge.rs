@@ -6,7 +6,7 @@ use uuid::Uuid;
 #[derive(Debug, Clone, PartialEq, Eq, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 pub enum OAuthAction {
     Login,
-    Bind { user_id: Uuid },
+    LinkAccount { user_id: Uuid },
 }
 
 #[derive(

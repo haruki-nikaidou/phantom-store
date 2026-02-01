@@ -41,6 +41,7 @@ pub enum CreateOAuthChallengeResult {
     Redirect(Url),
     ProviderNotSupported,
     SudoFailed,
+    UnmatchedAction,
 }
 
 impl Processor<CreateOAuthChallenge> for OAuthProviderService {
@@ -63,9 +64,11 @@ impl Processor<CreateOAuthChallenge> for OAuthProviderService {
             return Ok(CreateOAuthChallengeResult::ProviderNotSupported);
         };
 
-        // If action is Bind, verify sudo token
-        if let OAuthAction::Bind { user_id } = &input.action {
-            if let Some(sudo_token) = input.sudo_token {
+        match (&input.action, input.sudo_token) {
+            (OAuthAction::LinkAccount { .. }, None) => {
+                return Ok(CreateOAuthChallengeResult::SudoFailed);
+            }
+            (OAuthAction::LinkAccount { user_id }, Some(sudo_token)) => {
                 let verified = self
                     .mfa_service
                     .process(VerifySudoToken {
@@ -76,8 +79,10 @@ impl Processor<CreateOAuthChallenge> for OAuthProviderService {
                 if !verified {
                     return Ok(CreateOAuthChallengeResult::SudoFailed);
                 }
-            } else {
-                return Ok(CreateOAuthChallengeResult::SudoFailed);
+            }
+            (OAuthAction::Login, None) => {}
+            (OAuthAction::Login, Some(_)) => {
+                return Ok(CreateOAuthChallengeResult::UnmatchedAction);
             }
         }
 
@@ -100,8 +105,11 @@ impl Processor<CreateOAuthChallenge> for OAuthProviderService {
             pkce_verifier: auth_essentials.pkce_verifier,
         };
 
-        let challenge_ttl: std::time::Duration =
-            config.oauth_providers.challenge_expiration.try_into().map_err(|e| {
+        let challenge_ttl: std::time::Duration = config
+            .oauth_providers
+            .challenge_expiration
+            .try_into()
+            .map_err(|e| {
                 framework::Error::BusinessPanic(anyhow::anyhow!(
                     "Invalid challenge expiration: {e}"
                 ))
@@ -144,30 +152,23 @@ impl Processor<OAuthCallback> for OAuthProviderService {
             return Ok(OAuthCallbackRoute::InvalidState);
         };
 
-        match challenge.action {
-            OAuthAction::Login => {
-                // For login/register flow, pass the full challenge data
-                Ok(OAuthCallbackRoute::LoginOrRegister(
-                    OAuthLoginOrRegisterRoute {
-                        code: input.code,
-                        challenge,
-                    },
-                ))
-            }
-            OAuthAction::Bind { user_id } => {
-                // Validate that the user_id matches if provided
-                if let Some(input_user_id) = input.user_id {
-                    if input_user_id != user_id {
-                        return Ok(OAuthCallbackRoute::Unmatched);
-                    }
-                }
+        match (&challenge.action, input.user_id) {
+            (OAuthAction::Login, None) => Ok(OAuthCallbackRoute::LoginOrRegister(
+                OAuthLoginOrRegisterRoute {
+                    code: input.code,
+                    challenge,
+                },
+            )),
+            (OAuthAction::Login, Some(_)) => Ok(OAuthCallbackRoute::Unmatched),
+            (OAuthAction::LinkAccount { user_id }, Some(id)) if id == *user_id => {
                 Ok(OAuthCallbackRoute::LinkAccount(LinkOAuthAccountCallback {
-                    user_id,
+                    user_id: *user_id,
                     challenge,
                     code: input.code,
                     return_to: input.redirect_uri.to_string(),
                 }))
             }
+            (OAuthAction::LinkAccount { .. }, _) => Ok(OAuthCallbackRoute::Unmatched),
         }
     }
 }
@@ -197,15 +198,8 @@ impl Processor<OAuthLoginOrRegisterRoute> for OAuthProviderService {
         // Find the provider config
         let provider_config = config
             .oauth_providers
-            .providers
-            .iter()
-            .find(|p| p.name == input.challenge.provider_name)
-            .ok_or_else(|| {
-                framework::Error::BusinessPanic(anyhow::anyhow!(
-                    "Provider not found: {:?}",
-                    input.challenge.provider_name
-                ))
-            })?;
+            .find_provider(input.challenge.provider_name)
+            .ok_or(framework::Error::InvalidInput)?;
 
         // Build OAuth client
         let constants = input.challenge.provider_name.oauth_constants();
@@ -221,9 +215,7 @@ impl Processor<OAuthLoginOrRegisterRoute> for OAuthProviderService {
                 input.challenge.pkce_verifier.as_deref(),
             )
             .await
-            .map_err(|e| {
-                framework::Error::BusinessPanic(anyhow::anyhow!("Token exchange failed: {e}"))
-            })?;
+            .map_err(|e| framework::Error::Io(e.into()))?;
 
         let access_token = token_response.access_token().secret().to_string();
         let refresh_token = token_response
@@ -236,9 +228,7 @@ impl Processor<OAuthLoginOrRegisterRoute> for OAuthProviderService {
             .provider_name
             .fetch_user_info(&access_token)
             .await
-            .map_err(|e| {
-                framework::Error::BusinessPanic(anyhow::anyhow!("Failed to fetch user info: {e}"))
-            })?;
+            .map_err(|e| framework::Error::Io(e.into()))?;
 
         // Check if OAuth account already exists
         let existing_account = self
@@ -335,10 +325,7 @@ impl Processor<OAuthRegister> for OAuthProviderService {
         let email = input
             .user_info
             .email
-            .as_ref()
-            .ok_or_else(|| {
-                framework::Error::InvalidInput
-            })?
+            .ok_or_else(|| framework::Error::InvalidInput)?
             .to_string();
 
         // Register the OAuth account (creates user account in transaction)
@@ -348,7 +335,7 @@ impl Processor<OAuthRegister> for OAuthProviderService {
                 provider_name: input.provider_name,
                 provider_user_id: input.user_info.id.to_string(),
                 email,
-                name: input.user_info.name.as_ref().map(|n| n.to_string()),
+                name: input.user_info.name.map(|n| n.to_string()),
             })
             .await?;
 
@@ -392,7 +379,7 @@ impl Processor<LinkOAuthAccountCallback> for OAuthProviderService {
     ) -> Result<LinkOAuthAccountResult, framework::Error> {
         // Verify challenge user matches input user
         match &input.challenge.action {
-            OAuthAction::Bind { user_id } if *user_id != input.user_id => {
+            OAuthAction::LinkAccount { user_id } if *user_id != input.user_id => {
                 return Ok(LinkOAuthAccountResult::UserMismatch);
             }
             OAuthAction::Login => {
@@ -407,15 +394,8 @@ impl Processor<LinkOAuthAccountCallback> for OAuthProviderService {
         // Find the provider config
         let provider_config = config
             .oauth_providers
-            .providers
-            .iter()
-            .find(|p| p.name == input.challenge.provider_name)
-            .ok_or_else(|| {
-                framework::Error::BusinessPanic(anyhow::anyhow!(
-                    "Provider not found: {:?}",
-                    input.challenge.provider_name
-                ))
-            })?;
+            .find_provider(input.challenge.provider_name)
+            .ok_or(framework::Error::InvalidInput)?;
 
         // Build OAuth client
         let constants = input.challenge.provider_name.oauth_constants();
@@ -431,9 +411,7 @@ impl Processor<LinkOAuthAccountCallback> for OAuthProviderService {
                 input.challenge.pkce_verifier.as_deref(),
             )
             .await
-            .map_err(|e| {
-                framework::Error::BusinessPanic(anyhow::anyhow!("Token exchange failed: {e}"))
-            })?;
+            .map_err(|e| framework::Error::Io(anyhow::anyhow!("Token exchange failed: {e}")))?;
 
         let access_token = token_response.access_token().secret().to_string();
 
@@ -443,9 +421,7 @@ impl Processor<LinkOAuthAccountCallback> for OAuthProviderService {
             .provider_name
             .fetch_user_info(&access_token)
             .await
-            .map_err(|e| {
-                framework::Error::BusinessPanic(anyhow::anyhow!("Failed to fetch user info: {e}"))
-            })?;
+            .map_err(|e| framework::Error::Io(e.into()))?;
 
         // Check if this OAuth account is already linked to any user
         let existing_account = self

@@ -89,6 +89,12 @@ pub struct OAuthProvidersConfig {
     pub challenge_expiration: time::Duration,
 }
 
+impl OAuthProvidersConfig {
+    pub fn find_provider(&self, name: OAuthProviderName) -> Option<&OAuthProviderConfig> {
+        self.providers.iter().find(|p| p.name == name)
+    }
+}
+
 impl Default for OAuthProvidersConfig {
     fn default() -> Self {
         Self {
