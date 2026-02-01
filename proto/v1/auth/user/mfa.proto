@@ -1,0 +1,76 @@
+syntax = "proto3";
+package phantom_store.v1.auth.user;
+
+import "v1/common/values.proto";
+import "v1/auth/common/account.proto";
+import "v1/auth/common/sudo.proto";
+import "v1/auth/common/email_otp.proto";
+
+service TotpService {
+  rpc ShowTotpStatus(phantom_store.v1.common.Empty) returns (phantom_store.v1.auth.common.UserTotpStatus);
+  rpc RemoveTotp(phantom_store.v1.common.Empty) returns (phantom_store.v1.common.Empty);
+  rpc StartTotpSetup(StartTotpSetupRequest) returns (StartTotpSetupResponse);
+  rpc FinishTotpSetup(FinishTotpSetupRequest) returns (FinishTotpSetupResponse);
+}
+
+message StartTotpSetupRequest {
+  phantom_store.v1.auth.common.SudoToken sudo_token = 1;
+}
+
+message StartTotpSetupResponse {
+  bytes secret = 1;
+}
+
+message FinishTotpSetupRequest {
+  uint32 totp_code = 1;
+}
+
+enum FinishTotpSetupResult {
+  FINISH_TOTP_SETUP_RESULT_SUCCESS = 0;
+  FINISH_TOTP_SETUP_RESULT_INVALID_CODE = 1;
+  FINISH_TOTP_SETUP_RESULT_DUPLICATE = 2;
+  FINISH_TOTP_SETUP_RESULT_EXPIRED = 3;
+}
+
+message FinishTotpSetupResponse {
+  FinishTotpSetupResult result = 1;
+}
+
+service SudoService {
+  rpc SendEmailOtp(SendEmailOtpRequest) returns (SendEmailOtpResponse);
+  rpc ListSudoMethods(phantom_store.v1.common.Empty) returns (ListSudoMethodsResponse);
+  rpc EnterSudoMode(EnterSudoModeRequest) returns (EnterSudoModeResponse);
+}
+
+message SendEmailOtpRequest {
+  phantom_store.v1.auth.common.EmailOtpUsage usage = 1;
+  optional string email = 2;
+}
+
+message SendEmailOtpResponse {
+  phantom_store.v1.auth.common.EmailSendResult result = 1;
+}
+
+message EnterSudoModeRequest {
+  oneof method {
+    uint32 totp_code = 1;
+    string email_otp = 2;
+  }
+}
+
+enum EnterSudoModeError {
+  ENTER_SUDO_MODE_ERROR_INVALID_CREDENTIAL = 0;
+  ENTER_SUDO_MODE_ERROR_METHOD_NOT_ALLOWED = 1;
+}
+
+message EnterSudoModeResponse {
+  oneof result {
+    phantom_store.v1.auth.common.SudoToken sudo_token = 1;
+    EnterSudoModeError error = 2;
+  }
+}
+
+message ListSudoMethodsResponse {
+  bool has_totp = 1;
+  bool has_email_otp = 2;
+}

@@ -1,0 +1,6 @@
+syntax = "proto3";
+package phantom_store.v1.auth.common;
+
+message SudoToken {
+  bytes token = 1;
+}

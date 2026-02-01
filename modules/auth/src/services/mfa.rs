@@ -89,6 +89,7 @@ impl Processor<RemoveMfa> for MfaService {
 #[derive(Debug, Clone)]
 pub struct StartConfiguringTotp {
     pub user_id: Uuid,
+    pub sudo_token: [u8; 16],
 }
 
 impl Processor<StartConfiguringTotp> for MfaService {
@@ -98,6 +99,15 @@ impl Processor<StartConfiguringTotp> for MfaService {
         &self,
         input: StartConfiguringTotp,
     ) -> Result<PendingTotpSetup, framework::Error> {
+        let verified = self
+            .process(VerifySudoToken {
+                user_id: input.user_id,
+                token: input.sudo_token,
+            })
+            .await?;
+        if !verified {
+            return Err(framework::Error::PermissionsDenied);
+        }
         const RPC6238_TOTP_KEY_LENGTH: usize = 20;
         let secret: [u8; RPC6238_TOTP_KEY_LENGTH] = rand::random();
         let pending = PendingTotpSetup {
@@ -223,14 +233,14 @@ impl Processor<ListSudoMethods> for MfaService {
 }
 
 #[derive(Debug, Clone)]
-pub struct EnterSudoMode {
+pub struct EnterSudoModeNoCheck {
     pub user_id: Uuid,
 }
 
-impl Processor<EnterSudoMode> for MfaService {
+impl Processor<EnterSudoModeNoCheck> for MfaService {
     type Output = SudoToken;
     type Error = framework::Error;
-    async fn process(&self, input: EnterSudoMode) -> Result<SudoToken, framework::Error> {
+    async fn process(&self, input: EnterSudoModeNoCheck) -> Result<SudoToken, framework::Error> {
         let mut redis = self.config_store.clone();
         let config = find_config_from_redis::<AuthConfig>(&mut redis).await?;
         let ttl: std::time::Duration = config.sudo_token_ttl.try_into().map_err(|e| {
@@ -353,7 +363,7 @@ impl Processor<VerifyAndEnterSudo> for MfaService {
             return Ok(VerifyAndEnterSudoResult::InvalidCredential);
         }
         let token = self
-            .process(EnterSudoMode {
+            .process(EnterSudoModeNoCheck {
                 user_id: input.user_id,
             })
             .await?;

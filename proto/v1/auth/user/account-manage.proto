@@ -1,2 +1,114 @@
 syntax = "proto3";
 package phantom_store.v1.auth.user;
+
+import "v1/common/values.proto";
+import "v1/auth/common/account.proto";
+import "v1/auth/common/sudo.proto";
+
+service UserAccountService {
+  rpc ShowUserAccountsInfo(phantom_store.v1.common.Empty) returns (ShowUserAccountsInfoResponse);
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+  rpc RemovePassword(phantom_store.v1.auth.common.SudoToken) returns (RemovePasswordResponse);
+  rpc CreateOAuthLinkingChallenge(CreateOAuthLinkingChallengeRequest) returns (CreateOAuthLinkingChallengeResponse);
+  rpc UnlinkOAuthAccount(UnlinkOAuthAccountRequest) returns (UnlinkOAuthAccountResponse);
+  rpc ChangeEmailAddress(ChangeEmailAddressRequest) returns (ChangeEmailAddressResponse);
+}
+
+message ShowUserAccountsInfoResponse {
+  bool has_password = 1;
+  repeated phantom_store.v1.auth.common.OAuthAccount oauth_accounts = 2;
+}
+
+message ChangePasswordRequest {
+  phantom_store.v1.auth.common.SudoToken sudo_token = 1;
+  string new_password = 2;
+}
+
+enum ChangePasswordResult {
+  CHANGE_PASSWORD_RESULT_SUCCESS = 0;
+  CHANGE_PASSWORD_RESULT_SUDO_FAILED = 1;
+  CHANGE_PASSWORD_RESULT_NOT_FOUND = 2;
+}
+
+message ChangePasswordResponse {
+  ChangePasswordResult result = 1;
+}
+
+enum RemovePasswordResult {
+  REMOVE_PASSWORD_RESULT_SUCCESS = 0;
+  REMOVE_PASSWORD_RESULT_SUDO_FAILED = 1;
+  REMOVE_PASSWORD_RESULT_ALREADY_REMOVED = 2;
+  REMOVE_PASSWORD_RESULT_NOT_FOUND = 3;
+}
+
+message RemovePasswordResponse {
+  RemovePasswordResult result = 1;
+}
+
+message UnlinkOAuthAccountRequest {
+  phantom_store.v1.auth.common.SudoToken sudo_token = 1;
+  phantom_store.v1.auth.common.OAuthProviderName provider_name = 2;
+}
+
+enum UnlinkOAuthAccountResult {
+  UNLINK_OAUTH_ACCOUNT_RESULT_SUCCESS = 0;
+  UNLINK_OAUTH_ACCOUNT_RESULT_SUDO_FAILED = 1;
+  UNLINK_OAUTH_ACCOUNT_RESULT_NOT_FOUND = 2;
+}
+
+message UnlinkOAuthAccountResponse {
+  UnlinkOAuthAccountResult result = 1;
+}
+
+message CreateOAuthLinkingChallengeRequest {
+  phantom_store.v1.auth.common.OAuthProviderName provider_name = 1;
+  string return_to = 2;
+  bytes sudo_token = 3;
+}
+
+enum CreateOAuthLinkingChallengeError {
+  CREATE_OAUTH_LINKING_CHALLENGE_ERROR_PROVIDER_NOT_SUPPORTED = 0;
+  CREATE_OAUTH_LINKING_CHALLENGE_ERROR_SUDO_FAILED = 1;
+}
+
+message CreateOAuthLinkingChallengeResponse {
+  oneof result {
+    string redirect_url = 1;
+    CreateOAuthLinkingChallengeError error = 2;
+  }
+}
+
+message ChangeEmailAddressRequest {
+  phantom_store.v1.auth.common.SudoToken sudo_token = 1;
+  string new_email = 2;
+  string otp = 3;
+}
+
+enum ChangeEmailAddressResult {
+  CHANGE_EMAIL_ADDRESS_RESULT_SUCCESS = 0;
+  CHANGE_EMAIL_ADDRESS_RESULT_SUDO_FAILED = 1;
+  CHANGE_EMAIL_ADDRESS_RESULT_INVALID_EMAIL = 2;
+  CHANGE_EMAIL_ADDRESS_RESULT_INVALID_OTP = 3;
+  CHANGE_EMAIL_ADDRESS_RESULT_EMAIL_ADDRESS_DUPLICATED = 4;
+  CHANGE_EMAIL_ADDRESS_RESULT_NOT_FOUND = 5;
+}
+
+message ChangeEmailAddressResponse {
+  ChangeEmailAddressResult result = 1;
+}
+
+service UserProfileService {
+  rpc UpdateUserName(UpdateUserNameRequest) returns (UpdateUserNameResponse);
+}
+
+message UpdateUserNameRequest {
+  string name = 1;
+}
+
+message UpdateUserNameResponse {
+  string new_name = 1;
+}
+
+service SessionService {
+  rpc TerminateCurrentSession(phantom_store.v1.common.Empty) returns (phantom_store.v1.common.Empty);
+}
