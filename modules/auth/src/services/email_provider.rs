@@ -3,15 +3,16 @@ use crate::entities::db::email_otp::{
     CheckEmailFrequency, CreateEmailOtp, EmailOtp, EmailOtpUsage, FindValidEmailOtp,
     MarkEmailOtpAsUsed,
 };
-use crate::entities::db::user_account::{FindUserAccountByEmail, RegisterPasswordlessUserAccount};
+use crate::entities::db::user_account::{FindUserAccountByEmail, FindUserAccountById, RegisterPasswordlessUserAccount, UpdateUserEmail};
 use crate::entities::db::user_password::{
-    FindUserPasswordByEmail, FindUserPasswordByUserId, RegisterUserWithPassword,
+    DeleteUserPasswordByUserId, FindUserPasswordByEmail, FindUserPasswordByUserId,
+    RegisterUserWithPassword, UpdateUserPassword,
 };
 use crate::entities::redis::session::SessionId;
 use crate::events::account::{RegisterMethod, UserRegisterEvent};
 use crate::events::email::OtpEmailSendCall;
-use crate::services::mfa::{CheckMfaEnabled, CreateLoginMfaSession, MfaService};
-use crate::services::session::{CreateSession, SessionService};
+use crate::services::mfa::{CheckMfaEnabled, CreateLoginMfaSession, MfaService, VerifySudoToken};
+use crate::services::session::{CreateSession, SessionService, TerminateAllUserSessions};
 use crate::utils::password::{hash_password, verify_password};
 use admin::utils::config_provider::find_config_from_redis;
 use framework::rabbitmq::{AmqpMessageSend, AmqpPool};
@@ -322,9 +323,8 @@ impl Processor<RegisterUser> for EmailProviderService {
         }
 
         if let Some(password) = input.password {
-            let password_hash = hash_password(&password).map_err(|e| {
-                framework::Error::BusinessPanic(anyhow::anyhow!("Failed to hash password: {e}"))
-            })?;
+            let password_hash =
+                hash_password(&password).map_err(|_| framework::Error::InvalidInput)?;
             self.db.process(MarkEmailOtpAsUsed { id: otp.id }).await?;
             Ok(RouteRegisterUserResult::WithPassword(
                 RegisterWithPassword {
@@ -451,7 +451,28 @@ impl Processor<SendPasswordResetEmail> for EmailProviderService {
         &self,
         input: SendPasswordResetEmail,
     ) -> Result<SendPasswordResetEmailResult, framework::Error> {
-        todo!()
+        let config = find_config_from_redis::<AuthConfig>(&mut self.config_store.clone()).await?;
+        let account_exists = self
+            .db
+            .process(FindUserAccountByEmail {
+                email: input.email.clone(),
+            })
+            .await?
+            .is_some();
+        let email_allowed = config.email_provider.domain.check_addr(&input.email);
+        if !account_exists {
+            return if email_allowed {
+                Ok(SendPasswordResetEmailResult::MaybeSent)
+            } else {
+                Ok(SendPasswordResetEmailResult::InvalidEmailAddress)
+            };
+        }
+        self.process(SendEmailOtp {
+            email: input.email.clone(),
+            usage: EmailOtpUsage::PasswordReset,
+        })
+        .await?;
+        Ok(SendPasswordResetEmailResult::MaybeSent)
     }
 }
 
@@ -466,6 +487,7 @@ pub struct ResetPassword {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ResetPasswordResult {
     Success,
+    SuccessWithSession(SessionId),
     InvalidOtp,
     AccountNotFound,
 }
@@ -474,7 +496,46 @@ impl Processor<ResetPassword> for EmailProviderService {
     type Output = ResetPasswordResult;
     type Error = framework::Error;
     async fn process(&self, input: ResetPassword) -> Result<ResetPasswordResult, framework::Error> {
-        todo!()
+        let Some(_) = self
+            .process(VerifyEmailOtp {
+                user_id: Uuid::nil(),
+                email: input.email.clone(),
+                otp: input.otp.clone(),
+                usage: EmailOtpUsage::PasswordReset,
+            })
+            .await?
+        else {
+            return Ok(ResetPasswordResult::InvalidOtp);
+        };
+        let Some(user) = self
+            .db
+            .process(FindUserAccountByEmail {
+                email: input.email.clone(),
+            })
+            .await?
+        else {
+            return Ok(ResetPasswordResult::AccountNotFound);
+        };
+        let password_hash =
+            hash_password(&input.new_password).map_err(|_| framework::Error::InvalidInput)?;
+        self.db
+            .process(UpdateUserPassword {
+                user_id: user.id,
+                password_hash,
+            })
+            .await?;
+        self.session_service
+            .process(TerminateAllUserSessions { user_id: user.id })
+            .await?;
+        if input.auto_login {
+            let session_id = self
+                .session_service
+                .process(CreateSession { user_id: user.id })
+                .await?;
+            Ok(ResetPasswordResult::SuccessWithSession(session_id))
+        } else {
+            Ok(ResetPasswordResult::Success)
+        }
     }
 }
 
@@ -499,7 +560,32 @@ impl Processor<UserChangePassword> for EmailProviderService {
         &self,
         input: UserChangePassword,
     ) -> Result<ChangePasswordResult, framework::Error> {
-        todo!()
+        let verified = self
+            .mfa_service
+            .process(VerifySudoToken {
+                user_id: input.user_id,
+                token: input.sudo_token,
+            })
+            .await?;
+        if !verified {
+            return Ok(ChangePasswordResult::SudoFailed);
+        }
+        let Some(_) = self
+            .db
+            .process(FindUserAccountById { id: input.user_id })
+            .await?
+        else {
+            return Ok(ChangePasswordResult::NotFound);
+        };
+        let password_hash =
+            hash_password(&input.new_password).map_err(|_| framework::Error::InvalidInput)?;
+        self.db
+            .process(UpdateUserPassword {
+                user_id: input.user_id,
+                password_hash,
+            })
+            .await?;
+        Ok(ChangePasswordResult::Success)
     }
 }
 
@@ -524,7 +610,38 @@ impl Processor<UserRemovePassword> for EmailProviderService {
         &self,
         input: UserRemovePassword,
     ) -> Result<RemovePasswordResult, framework::Error> {
-        todo!()
+        let verified = self
+            .mfa_service
+            .process(VerifySudoToken {
+                user_id: input.user_id,
+                token: input.sudo_token,
+            })
+            .await?;
+        if !verified {
+            return Ok(RemovePasswordResult::SudoFailed);
+        }
+        let Some(_) = self
+            .db
+            .process(FindUserAccountById { id: input.user_id })
+            .await?
+        else {
+            return Ok(RemovePasswordResult::NotFound);
+        };
+        let Some(password) = self
+            .db
+            .process(FindUserPasswordByUserId {
+                user_id: input.user_id,
+            })
+            .await?
+        else {
+            return Ok(RemovePasswordResult::AlreadyRemoved);
+        };
+        self.db
+            .process(DeleteUserPasswordByUserId {
+                user_id: password.user_id,
+            })
+            .await?;
+        Ok(RemovePasswordResult::Success)
     }
 }
 
@@ -552,7 +669,55 @@ impl Processor<UserChangeEmailAddress> for EmailProviderService {
         &self,
         input: UserChangeEmailAddress,
     ) -> Result<ChangeEmailAddressResult, framework::Error> {
-        todo!()
+        let verified = self
+            .mfa_service
+            .process(VerifySudoToken {
+                user_id: input.user_id,
+                token: input.sudo_token,
+            })
+            .await?;
+        if !verified {
+            return Ok(ChangeEmailAddressResult::SudoFailed);
+        }
+        let Some(otp) = self
+            .process(VerifyEmailOtp {
+                user_id: input.user_id,
+                email: input.new_email.clone(),
+                otp: input.otp.clone(),
+                usage: EmailOtpUsage::ChangeEmailAddress,
+            })
+            .await?
+        else {
+            return Ok(ChangeEmailAddressResult::InvalidOtp);
+        };
+        let Some(_) = self
+            .db
+            .process(FindUserAccountById { id: input.user_id })
+            .await?
+        else {
+            return Ok(ChangeEmailAddressResult::NotFound);
+        };
+        let config = find_config_from_redis::<AuthConfig>(&mut self.config_store.clone()).await?;
+        if !config.email_provider.domain.check_addr(&input.new_email) {
+            return Ok(ChangeEmailAddressResult::InvalidEmail);
+        }
+        let account_exists = self
+            .db
+            .process(FindUserAccountByEmail {
+                email: input.new_email.clone(),
+            })
+            .await?
+            .is_some();
+        if account_exists {
+            return Ok(ChangeEmailAddressResult::InvalidEmail);
+        }
+        self.db
+            .process(UpdateUserEmail {
+                id: input.user_id,
+                email: input.new_email.clone(),
+            })
+            .await?;
+        Ok(ChangeEmailAddressResult::Success)
     }
 }
 

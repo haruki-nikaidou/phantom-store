@@ -156,3 +156,27 @@ impl Processor<ListUserSessions> for SessionService {
         Ok(sessions)
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct TerminateAllUserSessions {
+    pub user_id: Uuid,
+}
+
+impl Processor<TerminateAllUserSessions> for SessionService {
+    type Output = ();
+    type Error = framework::Error;
+    async fn process(&self, input: TerminateAllUserSessions) -> Result<(), framework::Error> {
+        let sessions = self.process(ListUserSessions {
+            user_id: input.user_id,
+        })
+        .await?;
+        let mut terminate_stream = parallel_map(
+            sessions.into_iter().map(|s| TerminateSession {
+                session_id: s.id,
+            }),
+            self,
+        );
+        while let Some(Ok(())) = terminate_stream.next().await {}
+        Ok(())
+    }
+}
