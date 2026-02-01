@@ -1,12 +1,18 @@
 use crate::config::AuthConfig;
-use crate::entities::db::email_otp::{CheckEmailFrequency, CreateEmailOtp, EmailOtpUsage};
-use crate::entities::db::user_account::FindUserAccountByEmail;
-use crate::entities::db::user_password::{FindUserPasswordByEmail, FindUserPasswordByUserId};
+use crate::entities::db::email_otp::{
+    CheckEmailFrequency, CreateEmailOtp, EmailOtp, EmailOtpUsage, FindValidEmailOtp,
+    MarkEmailOtpAsUsed,
+};
+use crate::entities::db::user_account::{FindUserAccountByEmail, RegisterPasswordlessUserAccount};
+use crate::entities::db::user_password::{
+    FindUserPasswordByEmail, FindUserPasswordByUserId, RegisterUserWithPassword,
+};
 use crate::entities::redis::session::SessionId;
+use crate::events::account::{RegisterMethod, UserRegisterEvent};
 use crate::events::email::OtpEmailSendCall;
 use crate::services::mfa::{CheckMfaEnabled, CreateLoginMfaSession, MfaService};
 use crate::services::session::{CreateSession, SessionService};
-use crate::utils::password::verify_password;
+use crate::utils::password::{hash_password, verify_password};
 use admin::utils::config_provider::find_config_from_redis;
 use framework::rabbitmq::{AmqpMessageSend, AmqpPool};
 use framework::redis::RedisConnection;
@@ -215,7 +221,33 @@ impl Processor<SendRegisterEmail> for EmailProviderService {
         &self,
         input: SendRegisterEmail,
     ) -> Result<SendRegisterEmailResult, framework::Error> {
-        todo!()
+        // check if the email is already used
+        let email_exists = self
+            .db
+            .process(FindUserAccountByEmail {
+                email: input.email.clone(),
+            })
+            .await?
+            .is_some();
+
+        if email_exists {
+            return Ok(SendRegisterEmailResult::DuplicatedEmail);
+        }
+
+        // send the email
+        let send_result = self
+            .process(SendEmailOtp {
+                email: input.email.clone(),
+                usage: EmailOtpUsage::Login,
+            })
+            .await?;
+        match send_result {
+            SendEmailOtpResult::Sent => Ok(SendRegisterEmailResult::Sent),
+            SendEmailOtpResult::InvalidEmailAddress => {
+                Ok(SendRegisterEmailResult::InvalidEmailAddress)
+            }
+            SendEmailOtpResult::RateLimited => Ok(SendRegisterEmailResult::RateLimited),
+        }
     }
 }
 
@@ -228,19 +260,169 @@ pub struct RegisterUser {
     pub auto_login: bool,
 }
 
+#[derive(Debug, Clone)]
+pub enum RouteRegisterUserResult {
+    WithPassword(RegisterWithPassword),
+    Passwordless(RegisterPasswordless),
+    InvalidOtp,
+    DuplicatedEmail,
+}
+
+#[derive(Debug, Clone)]
+pub struct RegisterWithPassword {
+    pub password_hash: String,
+    pub name: Option<String>,
+    pub email: String,
+    pub auto_login: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct RegisterPasswordless {
+    pub name: Option<String>,
+    pub email: String,
+    pub auto_login: bool,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RegisterUserResult {
     Registered,
     RegisteredWithSession(SessionId),
-    DuplicatedEmail,
-    InvalidOtp,
 }
 
 impl Processor<RegisterUser> for EmailProviderService {
+    type Output = RouteRegisterUserResult;
+    type Error = framework::Error;
+    async fn process(
+        &self,
+        input: RegisterUser,
+    ) -> Result<RouteRegisterUserResult, framework::Error> {
+        // verify the otp
+        let Some(otp) = self
+            .process(VerifyEmailOtp {
+                user_id: Uuid::nil(),
+                email: input.email.clone(),
+                otp: input.otp.clone(),
+                usage: EmailOtpUsage::Login,
+            })
+            .await?
+        else {
+            return Ok(RouteRegisterUserResult::InvalidOtp);
+        };
+
+        // check if the email is already used
+        let email_exists = self
+            .db
+            .process(FindUserAccountByEmail {
+                email: input.email.clone(),
+            })
+            .await?
+            .is_some();
+        if email_exists {
+            return Ok(RouteRegisterUserResult::DuplicatedEmail);
+        }
+
+        if let Some(password) = input.password {
+            let password_hash = hash_password(&password).map_err(|e| {
+                framework::Error::BusinessPanic(anyhow::anyhow!("Failed to hash password: {e}"))
+            })?;
+            self.db.process(MarkEmailOtpAsUsed { id: otp.id }).await?;
+            Ok(RouteRegisterUserResult::WithPassword(
+                RegisterWithPassword {
+                    password_hash,
+                    name: input.name,
+                    email: input.email,
+                    auto_login: input.auto_login,
+                },
+            ))
+        } else {
+            self.db.process(MarkEmailOtpAsUsed { id: otp.id }).await?;
+            Ok(RouteRegisterUserResult::Passwordless(
+                RegisterPasswordless {
+                    name: input.name,
+                    email: input.email,
+                    auto_login: input.auto_login,
+                },
+            ))
+        }
+    }
+}
+
+impl Processor<RegisterWithPassword> for EmailProviderService {
     type Output = RegisterUserResult;
     type Error = framework::Error;
-    async fn process(&self, input: RegisterUser) -> Result<RegisterUserResult, framework::Error> {
-        todo!()
+    async fn process(
+        &self,
+        input: RegisterWithPassword,
+    ) -> Result<RegisterUserResult, framework::Error> {
+        let user_account = self
+            .db
+            .process(RegisterUserWithPassword {
+                email: input.email.clone(),
+                name: input.name.clone(),
+                password_hash: input.password_hash.clone(),
+            })
+            .await?;
+        UserRegisterEvent {
+            user_id: user_account.user_id,
+            registered_at: user_account.created_at.assume_utc().unix_timestamp() as u64,
+            register_method: RegisterMethod::EmailAccount {
+                user_id: user_account.user_id,
+                has_password: true,
+            },
+            register_with_order_creation: false,
+        }
+        .send(&self.mq)
+        .await?;
+        if input.auto_login {
+            let session_id = self
+                .session_service
+                .process(CreateSession {
+                    user_id: user_account.user_id,
+                })
+                .await?;
+            Ok(RegisterUserResult::RegisteredWithSession(session_id))
+        } else {
+            Ok(RegisterUserResult::Registered)
+        }
+    }
+}
+
+impl Processor<RegisterPasswordless> for EmailProviderService {
+    type Output = RegisterUserResult;
+    type Error = framework::Error;
+    async fn process(
+        &self,
+        input: RegisterPasswordless,
+    ) -> Result<RegisterUserResult, framework::Error> {
+        let user_account = self
+            .db
+            .process(RegisterPasswordlessUserAccount {
+                email: input.email.clone(),
+                name: input.name.clone(),
+            })
+            .await?;
+        UserRegisterEvent {
+            user_id: user_account.id,
+            registered_at: user_account.created_at.assume_utc().unix_timestamp() as u64,
+            register_method: RegisterMethod::EmailAccount {
+                user_id: user_account.id,
+                has_password: false,
+            },
+            register_with_order_creation: false,
+        }
+        .send(&self.mq)
+        .await?;
+        if input.auto_login {
+            let session_id = self
+                .session_service
+                .process(CreateSession {
+                    user_id: user_account.id,
+                })
+                .await?;
+            Ok(RegisterUserResult::RegisteredWithSession(session_id))
+        } else {
+            Ok(RegisterUserResult::Registered)
+        }
     }
 }
 
@@ -382,22 +564,18 @@ struct VerifyEmailOtp {
     pub usage: EmailOtpUsage,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-enum VerifyEmailOtpResult {
-    Success,
-    NotFound,
-    Expired,
-    Mismatch,
-    AlreadyUsed,
-}
-
 impl Processor<VerifyEmailOtp> for EmailProviderService {
-    type Output = VerifyEmailOtpResult;
+    type Output = Option<EmailOtp>;
     type Error = framework::Error;
-    async fn process(
-        &self,
-        input: VerifyEmailOtp,
-    ) -> Result<VerifyEmailOtpResult, framework::Error> {
-        todo!()
+    async fn process(&self, input: VerifyEmailOtp) -> Result<Option<EmailOtp>, framework::Error> {
+        self.db
+            .process(FindValidEmailOtp {
+                user_id: input.user_id,
+                email: input.email,
+                usage: input.usage,
+                otp_code: input.otp,
+            })
+            .await
+            .map_err(Into::into)
     }
 }
