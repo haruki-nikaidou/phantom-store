@@ -4,3 +4,28 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+framework = { workspace = true }
+anyhow = { workspace = true }
+kanau = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sqlx = { workspace = true }
+amqprs = { workspace = true }
+tokio = { workspace = true }
+tonic-prost = { workspace = true }
+tracing = { workspace = true }
+time = { workspace = true }
+compact_str = { workspace = true }
+rust_decimal = { workspace = true }
+redis = { workspace = true }
+uuid = { workspace = true }
+tonic = { workspace = true }
+prost = { workspace = true }
+rand = { workspace = true }
+prost-types = { workspace = true }
+thiserror = { workspace = true }
+rkyv = { workspace = true }
+hex = "0.4"
+sha2 = "0.10"
+axum = { workspace = true }
+tower = { workspace = true }

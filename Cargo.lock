@@ -4056,6 +4056,33 @@ checksum = "051eb1abcf10076295e815102942cc58f9d5e3b4560e46e53c21e8ff6f3af7b1"
 [[package]]
 name = "waf"
 version = "0.1.0"
+dependencies = [
+ "amqprs",
+ "anyhow",
+ "axum",
+ "compact_str",
+ "framework",
+ "hex",
+ "kanau",
+ "prost",
+ "prost-types",
+ "rand 0.9.2",
+ "redis",
+ "rkyv 0.8.14",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "sha2",
+ "sqlx",
+ "thiserror 2.0.18",
+ "time",
+ "tokio",
+ "tonic",
+ "tonic-prost",
+ "tower",
+ "tracing",
+ "uuid",
+]
 
 [[package]]
 name = "want"
